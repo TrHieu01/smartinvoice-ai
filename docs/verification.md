@@ -2,6 +2,8 @@
 
 ## Đã qua
 
+- Parser `rules-0.3.0`: 55 pytest local (16 ca mới về bố cục), Ruff và contract drift đều qua. Replay OCR thật của hai hóa đơn báo lỗi: 0 → 8 và 0 → 4 sản phẩm, nhận được tổng 187.954 và 105.124; source evidence hợp lệ. Không sửa dữ liệu cũ hoặc tạo job RunPod cho replay. [Chi tiết](extraction.md).
+
 - 39 pytest trên [CI commit 8c06dd3](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39543587098): contract/schema, Auth/error redaction, file validation, PDF pipeline, OCR labels/items/currency và regression handler trong event loop.
 - 14 Node/PostgreSQL tests: SQL/RLS, atomic lifecycle, stale version/token, deletion, dispatcher leases/provider ID/retry budget.
 - 3 frontend Auth regression tests phân biệt lỗi giới hạn gửi email/mật khẩu và giữ thông báo an toàn; [CI commit c316cc5](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39573826657) thành công, Vercel Ready.

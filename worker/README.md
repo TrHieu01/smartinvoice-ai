@@ -1,5 +1,7 @@
 # RunPod worker
 
+Pipeline `rules-0.3.0` bổ sung parser theo bố cục cho bảng/thẻ sản phẩm nhiều dòng, số chứng từ, tổng tiền và loại thanh trạng thái khỏi tên cửa hàng. Xem [kiểm chứng và giới hạn](../docs/extraction.md). Kết quả cũ không tự cập nhật; cần upload file thành hóa đơn mới sau khi endpoint dùng image mới.
+
 Worker dự kiến chạy trên RunPod Serverless Flex, không yêu cầu máy cá nhân bật OCR.
 
 Input business payload: `../contracts/process-job.schema.json`, chỉ có job_id. Dispatcher bọc payload theo giao thức RunPod, không gửi signed URLs hoặc credential của user trong input. Handler lấy receipt/storage path từ DB sau khi claim lease, tải file bằng server-only credential, chạy pipeline và validate `extraction.schema.json` + Pydantic.

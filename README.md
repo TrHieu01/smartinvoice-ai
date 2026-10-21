@@ -30,6 +30,8 @@ flowchart LR
 
 Không dùng LLM bắt buộc, Redis hay Cloud Tasks. Database là nguồn trạng thái chính. Tiền dùng chuỗi decimal ở API và `NUMERIC` trong Postgres. MVP hỗ trợ VND, không cộng trực tiếp nhiều loại tiền tệ.
 
+Parser `rules-0.3.0` hỗ trợ bảng/thẻ sản phẩm nhiều dòng, số chứng từ và tổng tiền; loại thanh trạng thái khỏi tên cửa hàng. Replay hai mẫu báo lỗi nhận được 8 và 4 sản phẩm; đây chưa phải benchmark. [Kiểm chứng và giới hạn extraction](docs/extraction.md).
+
 | Thành phần | Công nghệ | Nền tảng |
 |---|---|---|
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind 4 | Vercel Hobby |

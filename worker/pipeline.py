@@ -17,7 +17,7 @@ from backend.app.schemas.contracts import DocumentOCR, ExtractionResult, Receipt
 from backend.app.services.files import inspect_file
 from backend.app.services.validation import validate_receipt
 
-VERSION = "rules-0.2.0"
+VERSION = "rules-0.3.0"
 
 
 def fold(text):
@@ -65,6 +65,191 @@ def rows(ocr):
     return result
 
 
+NUMBER = r"\d{1,14}(?:[.,]\d+)*"
+QUANTITY = r"\d{1,8}(?:[.,]\d{1,3})?"
+PRINTED_AMOUNT = rf"({NUMBER})\s*(?:vnd|₫|đ|d)?"
+NON_PRODUCT = (
+    r"^(?:tong|tng|tam tinh|thanh toan|tien|tin |thue|vat|giam|subtotal|total|"
+    r"discount|date|ngay|so ct|s ct|so hoa don|don hang|invoice|receipt|"
+    r"nhan vien|dia chi|address|hotline|tel|phone|mst|ma so thue|"
+    r"phieu|phiu|cam on|thank|gia ban|don gia|sl\b|qty\b)"
+)
+
+
+def product_name(text):
+    return (
+        sum(c.isalpha() for c in text) >= 3
+        and not re.search(NON_PRODUCT, fold(text))
+        and not re.search(r"https?://|www\.", text.lower())
+    )
+
+
+def nearby(first, second, max_gap=0.06):
+    """Never join separate pages or widely separated receipt sections."""
+    return (
+        first[0].id.split("-")[0] == second[0].id.split("-")[0]
+        and -0.01
+        <= min(line.bbox.y0 for line in second) - max(line.bbox.y1 for line in first)
+        <= max_gap
+    )
+
+
+def layout_items(ocr, document_rows):
+    """Extract table rows and order cards with field-specific OCR evidence."""
+    items = []
+    table_page = None
+    for index, (text, lines) in enumerate(document_rows):
+        normalized = fold(text)
+        page = lines[0].id.split("-")[0]
+        if re.match(r"^(?:sl|so luong|qty|quantity)\s{2,}", normalized):
+            table_page = page
+            continue
+        if re.match(r"^(?:tong|tng|subtotal|total|thanh toan)\b", normalized):
+            table_page = None
+        parts = [p.strip() for p in re.split(r"\s*\|\s*|\t+|\s{2,}", text) if p.strip()]
+        if (
+            len(parts) == 4
+            and product_name(parts[0])
+            and re.fullmatch(QUANTITY, parts[1])
+            and all(re.fullmatch(PRINTED_AMOUNT, fold(part)) for part in parts[2:])
+        ):
+            name, qty, unit, total = parts
+            sources = dict.fromkeys(("name", "quantity", "unit_price", "line_total"), lines)
+        elif (
+            table_page == page
+            and index
+            and re.fullmatch(rf"\s*{QUANTITY}\s+{NUMBER}\s+{PRINTED_AMOUNT}\s*", normalized)
+        ):
+            numbers = re.findall(NUMBER, normalized)
+            name, name_lines = document_rows[index - 1]
+            if not product_name(name) or not nearby(name_lines, lines):
+                continue
+            qty, unit, total = numbers
+            sources = dict(name=name_lines, quantity=lines, unit_price=lines, line_total=lines)
+        else:
+            continue
+        unit, total = money(unit), money(total)
+        qty = qty.replace(",", ".")
+        if unit is not None and total is not None and Decimal(qty) > 0:
+            items.append(
+                (dict(name=name[:300], quantity=qty, unit_price=unit, line_total=total), sources)
+            )
+
+    # Explicit quantity labels anchor cards. Individual boxes exclude package
+    # thumbnail text and keep a former price below the primary price separate.
+    for page in ocr.pages:
+        quantities = [
+            line
+            for line in page.lines
+            if re.match(r"(?:sl|so luong|qty|quantity)\b", fold(line.text))
+        ]
+        for quantity in quantities[:500]:
+            qty = re.fullmatch(
+                rf"(?:sl|so luong|qty|quantity)\s*[:x]?\s*({QUANTITY})", fold(quantity.text)
+            )
+            if not qty or quantity.bbox.x0 < 0.5 or Decimal(qty[1].replace(",", ".")) <= 0:
+                continue
+            band = [
+                line
+                for line in page.lines
+                if quantity.bbox.y0 - 0.09 <= line.bbox.y0 <= quantity.bbox.y1 + 0.035
+            ]
+            if len(band) > 150:
+                continue
+            choices = []
+            for price in band:
+                amount = re.fullmatch(PRINTED_AMOUNT, fold(price.text))
+                if not amount or price.bbox.x0 < 0.65:
+                    continue
+                if not -0.01 <= quantity.bbox.y0 - price.bbox.y0 <= 0.09:
+                    continue
+                names = [
+                    line
+                    for line in band
+                    if line.bbox.x1 < price.bbox.x0
+                    and abs((line.bbox.y0 + line.bbox.y1 - price.bbox.y0 - price.bbox.y1) / 2)
+                    <= max(0.012, (price.bbox.y1 - price.bbox.y0) * 0.6)
+                    and product_name(line.text)
+                ]
+                if names:
+                    name = max(names, key=lambda line: line.bbox.x1 - line.bbox.x0)
+                    choices.append((price, name, amount[1]))
+            if not choices:
+                continue
+            price, name, amount = min(choices, key=lambda value: value[0].bbox.y0)
+            if any(
+                other_name.id == name.id
+                and abs(other_price.bbox.y0 - price.bbox.y0) < 0.006
+                and money(other_amount) != money(amount)
+                for other_price, other_name, other_amount in choices
+            ):
+                continue
+            name_lines = [name]
+            for line in band:
+                if (
+                    name.bbox.y1 - 0.005 <= line.bbox.y0 <= quantity.bbox.y1
+                    and abs(line.bbox.x0 - name.bbox.x0) < 0.035
+                    and line.bbox.x1 < price.bbox.x0
+                    and line.id != name.id
+                    and re.search(r"[a-zA-ZÀ-ỹ]", line.text)
+                    and not re.search(NON_PRODUCT, fold(line.text))
+                ):
+                    name_lines.append(line)
+            name_lines.sort(key=lambda line: line.bbox.y0)
+            unit_lines = [
+                line
+                for line in band
+                if name.bbox.y0 <= line.bbox.y0 <= quantity.bbox.y1 + 0.035
+                and abs(line.bbox.x0 - name.bbox.x0) < 0.05
+                and re.match(r"gia ban\s*:", fold(line.text))
+            ]
+            unit_match = (
+                re.search(rf"gia ban\s*:\s*({NUMBER})", fold(unit_lines[0].text))
+                if len(unit_lines) == 1
+                else None
+            )
+            values = dict(
+                name=" ".join(line.text for line in name_lines)[:300],
+                quantity=qty[1].replace(",", "."),
+                unit_price=money(unit_match[1]) if unit_match else None,
+                line_total=money(amount),
+            )
+            sources = dict(name=name_lines, quantity=[quantity], line_total=[price])
+            if values["unit_price"] is not None:
+                sources["unit_price"] = unit_lines
+            used = {line.id for _, source in items for line in source["line_total"]}
+            if price.id not in used:
+                items.append((values, sources))
+    return items[:500]
+
+
+def merchant_header(document_rows):
+    for text, lines in document_rows[:12]:
+        normalized = fold(text).strip()
+        if re.fullmatch(r"(?:tax\s+)?(?:invoice|receipt)", normalized):
+            continue
+        if re.search(
+            r"^(?:<?\s*)?(?:don hang|so ct|s ct|invoice|receipt|ngay|date|dia chi|da chi)\b",
+            normalized,
+        ):
+            break
+        if (
+            not product_name(text)
+            or re.search(
+                r"\d{1,2}:\d{2}|www\.|https?://|@|\?|\bmenu\b|tim gi|tim kiem|search", normalized
+            )
+            or re.match(r"[\d\W]", normalized)
+            or re.search(
+                r"hoa don|phieu|phiu|thanh toan|quan |qun |phuong|phung|thanh pho|thanh ph",
+                normalized,
+            )
+        ):
+            continue
+        if sum(c.isalpha() for c in text) >= 4:
+            return text[:300], lines
+    return None
+
+
 def extract(ocr):
     data = dict.fromkeys(
         (
@@ -109,15 +294,19 @@ def extract(ocr):
             r"tong thanh toan|tong cong|thanh tien|grand total|amount due|^total\b|tong tien",
         ),
     ]
-    for text, lines in document_rows:
+    for row_index, (text, lines) in enumerate(document_rows):
         normalized = fold(text)
-        # OCR sometimes drops accented characters. Only tolerate a small edit in
-        # an explicit label before ':', and flag that inference for human review.
-        if ":" in normalized:
-            prefix, tail = normalized.split(":", 1)
+        # Tolerate a small edit in an explicit amount label, including OCR boxes
+        # joined without a colon. Always flag this inference for human review.
+        if ":" in normalized or re.search(r"\s\d", normalized):
+            if ":" in normalized:
+                prefix, tail = normalized.split(":", 1)
+            else:
+                prefix, tail = re.split(r"\s+(?=\d)", normalized, maxsplit=1)
             aliases = (
                 "tong thanh toan",
                 "tong cong",
+                "tong tien",
                 "tien hang",
                 "tien thue",
                 "giam gia",
@@ -149,7 +338,9 @@ def extract(ocr):
                     message="MVP chỉ hỗ trợ VND; cần kiểm tra loại tiền.",
                 )
             )
-        if re.search(r"\bvnd\b|\bvnđ\b|dong\b|₫|đ(?:\s|$)", text.lower() + " " + normalized):
+        if re.search(
+            r"\bvnd\b|\bvnđ\b|\bdong\b|₫|\d[\d.,]*\s*[đd]\b", text.lower() + " " + normalized
+        ):
             put("currency", "VND", lines)
         found_date = re.search(r"\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b", text)
         vn_date = re.search(r"\b(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{4})\b", text)
@@ -161,16 +352,29 @@ def extract(ocr):
                 put("purchase_date", date(year, month, day).isoformat(), lines)
         except ValueError:
             pass
+        if (
+            not found_date
+            and not vn_date
+            and re.search(r"mua luc|ngay|date", normalized)
+            and re.search(r"\b\d{1,2}/\d{1,2}\b", normalized)
+        ):
+            warnings.append(
+                dict(
+                    code="ambiguous_value",
+                    severity="warning",
+                    field="/purchase_date",
+                    message="Ngày mua thiếu năm; cần bổ sung theo hóa đơn gốc.",
+                )
+            )
         tax = re.search(r"(?:mst|ma so thue|tax id)\s*[:#]?\s*(\d{10}(?:-\d{3})?)\b", normalized)
         if tax:
             put("merchant_tax_id", tax[1], lines)
         invoice = re.search(
-            r"(?:so hoa don|invoice\s*(?:no\.?|number|#)|receipt\s*(?:no\.?|#))\s*[:#]?\s*([A-Za-z0-9/-]+)",
+            r"(?:so hoa don|so chung tu|s[o]? ct|don hang|invoice\s*(?:no\.?|number|#)|receipt\s*(?:no\.?|#))\s*[:#]{0,2}\s*([A-Za-z0-9/-]+)",
             normalized,
         )
         if invoice:
             put("invoice_number", invoice[1].upper()[:100], lines)
-        matched = False
         for field, pattern in labels:
             label = re.search(pattern, normalized)
             if label:
@@ -181,31 +385,20 @@ def extract(ocr):
                     value = money(amounts[-1])
                     if value is not None:
                         candidates.setdefault(field, []).append((value, lines))
-                matched = True
+                elif not tail.strip(" :=") and row_index + 1 < len(document_rows):
+                    next_text, next_lines = document_rows[row_index + 1]
+                    amount = re.fullmatch(PRINTED_AMOUNT, fold(next_text).strip())
+                    if amount and nearby(lines, next_lines, max_gap=0.04):
+                        value = money(amount[1])
+                        if value is not None:
+                            candidates.setdefault(field, []).append((value, lines + next_lines))
                 break
-        # Conservative item baseline: explicitly separated name, quantity, price, total.
-        parts = [p.strip() for p in re.split(r"\s*\|\s*|\t+|\s{2,}", text) if p.strip()]
-        if not matched and len(parts) == 4 and re.fullmatch(r"\d{1,8}(?:[.,]\d{1,3})?", parts[1]):
-            qty = parts[1].replace(",", ".")
-            unit, total = money(parts[2]), money(parts[3])
-            if unit and total and Decimal(qty) > 0 and len(data["items"]) < 500:
-                idx = len(data["items"])
-                data["items"].append(
-                    dict(
-                        line_number=idx + 1,
-                        name=parts[0][:300],
-                        quantity=None,
-                        unit_price=None,
-                        line_total=None,
-                    )
-                )
-                for key, value in (
-                    ("name", parts[0][:300]),
-                    ("quantity", qty),
-                    ("unit_price", unit),
-                    ("line_total", total),
-                ):
-                    put(f"items/{idx}/{key}", value, lines)
+    for values, sources in layout_items(ocr, document_rows):
+        index = len(data["items"])
+        data["items"].append(dict(line_number=index + 1, **dict.fromkeys(values)))
+        for key, value in values.items():
+            if value is not None:
+                put(f"items/{index}/{key}", value, sources[key])
     for field, options in candidates.items():
         if len(set(value for value, _ in options)) == 1:
             put(field, options[0][0], options[0][1])
@@ -218,13 +411,9 @@ def extract(ocr):
                     message="Có nhiều giá trị khác nhau; cần xác nhận thủ công.",
                 )
             )
-    for text, lines in document_rows[:6]:
-        if re.search(r"[a-zA-ZÀ-ỹ]", text) and not re.search(
-            r"hoa don|invoice|receipt|dia chi|address|mst|tax|ngay|date|tel|phone|hotline",
-            fold(text),
-        ):
-            put("merchant", text[:300], lines)
-            break
+    merchant = merchant_header(document_rows)
+    if merchant:
+        put("merchant", *merchant)
     if any(w["code"] == "unsupported_currency" for w in warnings):
         data["currency"] = None
         evidence.pop("currency", None)
