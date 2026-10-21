@@ -70,8 +70,9 @@ async def process(payload):
             return {"decision": "failed", "error_code": code}
 
 
-def handler(job):
-    return asyncio.run(process(job["input"]))
+async def handler(job):
+    # RunPod 1.10 invokes handlers inside its existing event loop.
+    return await process(job["input"])
 
 
 if __name__ == "__main__":
