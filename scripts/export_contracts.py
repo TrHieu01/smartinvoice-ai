@@ -245,10 +245,10 @@ def documents() -> dict[Path, dict]:
         "openapi": "3.1.0",
         "info": {
             "title": "SmartInvoice AI API",
-            "version": "1.0.0",
-            "description": "Contract milestone; runtime not yet implemented. Auth sign-up/sign-in uses Supabase Auth directly.",
+            "version": "1.1.0",
+            "description": "Receipt API with optional item units, merchant address and payment method. Auth sign-up/sign-in uses Supabase Auth directly.",
         },
-        "servers": [{"url": "http://localhost:8000", "description": "Planned local API"}],
+        "servers": [{"url": "http://localhost:8000", "description": "Local development API"}],
         "security": [{"SupabaseBearer": []}],
         "paths": paths,
         "components": {"securitySchemes": security_schemes, "schemas": schemas},
@@ -257,7 +257,7 @@ def documents() -> dict[Path, dict]:
     ai_schema.update(
         {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "$id": "urn:smartinvoice:extraction:1.0.0",
+            "$id": "urn:smartinvoice:extraction:1.1.0",
         }
     )
     process_schema = c.ProcessTask.model_json_schema()

@@ -222,6 +222,10 @@ test('SmartInvoice migration and access invariants', async (t) => {
     assert.equal((await rpc('si_claim',{p_job:job})).decision,'busy');
     const fixture = JSON.parse(await readFile(new URL('../contracts/examples/extraction.vi.json',import.meta.url),'utf8'));
     fixture.receipt_id=r.id; fixture.job_id=job;
+    fixture.schema_version='1.1.0';
+    fixture.data.merchant_address='12 Test Street';
+    fixture.data.payment_method='Cash';
+    fixture.data.items=[{line_number:1,name:'Sample',unit:'kg',quantity:'1',unit_price:'100',line_total:'100'}];
     for (const token of [null,randomUUID()]) {
       assert.equal(await rpc('si_complete',{p_job:job,p_token:token,p_result:fixture}),false);
       assert.equal(await rpc('si_fail',{p_job:job,p_token:token,p_code:'invalid'}),false);
@@ -230,11 +234,18 @@ test('SmartInvoice migration and access invariants', async (t) => {
     assert.equal(await rpc('si_complete',{p_job:job,p_token:lease.lease_token,p_result:fixture}),false);
     const detail = await rpc('si_detail',{p_actor:USER_B,p_id:r.id});
     assert.equal(detail.status,'needs_review');
+    assert.equal(detail.data.merchant_address,'12 Test Street');
+    assert.equal(detail.data.payment_method,'Cash');
+    assert.equal(detail.data.items[0].unit,'kg');
     const before = await rpc('si_analytics',{p_actor:USER_B,p_from:'2026-01-01',p_to:'2026-12-31'});
-    const changed = {...detail.data,merchant:'Reviewed Merchant',purchase_date:'2026-10-21',total_amount:'123456.00',currency:'VND'};
+    const changed = {...detail.data,merchant:'Reviewed Merchant',merchant_address:'34 Reviewed Street',payment_method:'Card',items:detail.data.items.map(i=>({...i,unit:'bag'})),purchase_date:'2026-10-21',total_amount:'123456.00',currency:'VND'};
     const reviewed = await rpc('si_review',{p_actor:USER_B,p_id:r.id,p_expected:detail.version,p_action:'confirm',p_data:changed,p_category:'food',p_warnings:[]});
     assert.equal(reviewed.status,'confirmed');
     assert.equal(reviewed.latest_extraction.data.merchant,fixture.data.merchant);
+    assert.equal(reviewed.data.merchant_address,'34 Reviewed Street');
+    assert.equal(reviewed.data.payment_method,'Card');
+    assert.equal(reviewed.data.items[0].unit,'bag');
+    assert.equal(reviewed.latest_extraction.data.items[0].unit,'kg');
     await assert.rejects(rpc('si_review',{p_actor:USER_B,p_id:r.id,p_expected:detail.version,p_action:'confirm',p_data:changed,p_category:'food',p_warnings:[]}),/version_conflict/);
     const after = await rpc('si_analytics',{p_actor:USER_B,p_from:'2026-01-01',p_to:'2026-12-31'});
     assert.equal(Number(after.total_amount)-Number(before.total_amount),123456);

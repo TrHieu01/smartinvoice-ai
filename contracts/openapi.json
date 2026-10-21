@@ -2,13 +2,13 @@
   "openapi": "3.1.0",
   "info": {
     "title": "SmartInvoice AI API",
-    "version": "1.0.0",
-    "description": "Contract milestone; runtime not yet implemented. Auth sign-up/sign-in uses Supabase Auth directly."
+    "version": "1.1.0",
+    "description": "Receipt API with optional item units, merchant address and payment method. Auth sign-up/sign-in uses Supabase Auth directly."
   },
   "servers": [
     {
       "url": "http://localhost:8000",
-      "description": "Planned local API"
+      "description": "Local development API"
     }
   ],
   "security": [
@@ -1496,6 +1496,20 @@
             "title": "Name",
             "type": "string"
           },
+          "unit": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Unit"
+          },
           "quantity": {
             "anyOf": [
               {
@@ -1547,7 +1561,10 @@
         "additionalProperties": false,
         "properties": {
           "schema_version": {
-            "const": "1.0.0",
+            "enum": [
+              "1.0.0",
+              "1.1.0"
+            ],
             "title": "Schema Version",
             "type": "string"
           },
@@ -1617,7 +1634,7 @@
         "additionalProperties": false,
         "properties": {
           "field": {
-            "pattern": "^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$",
+            "pattern": "^/(merchant|merchant_address|payment_method|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|unit|quantity|unit_price|line_total))$",
             "title": "Field",
             "type": "string"
           },
@@ -1764,6 +1781,34 @@
               }
             ],
             "title": "Merchant"
+          },
+          "merchant_address": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Merchant Address"
+          },
+          "payment_method": {
+            "anyOf": [
+              {
+                "maxLength": 50,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Payment Method"
           },
           "merchant_tax_id": {
             "anyOf": [
@@ -1943,7 +1988,7 @@
           "field": {
             "anyOf": [
               {
-                "pattern": "^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$",
+                "pattern": "^/(merchant|merchant_address|payment_method|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|unit|quantity|unit_price|line_total))$",
                 "type": "string"
               },
               {

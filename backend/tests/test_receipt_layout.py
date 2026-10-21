@@ -166,7 +166,7 @@ def test_conflicting_totals_and_item_arithmetic_remain_visible():
 def test_receipt_title_and_partial_ocr_rounding_note_are_not_merchant_or_currency(heading):
     data, _, _ = checked_extract(
         document(
-        row(0.02, (heading, 0.1, 0.9))
+            row(0.02, (heading, 0.1, 0.9))
             + row(0.06, ("SHOP MẪU", 0.1, 0.9))
             + row(0.5, ("(Đ làm tròn)", 0.1, 0.9))
         )

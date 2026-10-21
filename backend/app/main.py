@@ -49,7 +49,7 @@ def create_app(settings: Settings | None = None, transport=None) -> FastAPI:
             app.state.gateway = SupabaseGateway(settings, client)
             yield
 
-    app = FastAPI(title="SmartInvoice AI API", version="1.0.0", lifespan=lifespan)
+    app = FastAPI(title="SmartInvoice AI API", version="1.1.0", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[

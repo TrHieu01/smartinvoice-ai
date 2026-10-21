@@ -47,6 +47,7 @@ class Category(StrEnum):
 class ExtractedItem(Contract):
     line_number: int = Field(ge=1, le=500)
     name: ShortText
+    unit: Annotated[str, Field(min_length=1, max_length=50)] | None = None
     quantity: Quantity | None
     unit_price: Money | None
     line_total: Money | None
@@ -60,6 +61,8 @@ class ExtractedItem(Contract):
 
 class ReceiptData(Contract):
     merchant: ShortText | None
+    merchant_address: Annotated[str, Field(min_length=1, max_length=500)] | None = None
+    payment_method: Annotated[str, Field(min_length=1, max_length=50)] | None = None
     merchant_tax_id: Annotated[str, Field(pattern=r"^[0-9]{10}(-[0-9]{3})?$")] | None
     invoice_number: Annotated[str, Field(min_length=1, max_length=100)] | None
     purchase_date: date | None
@@ -150,8 +153,8 @@ FieldPath = Annotated[
     str,
     Field(
         pattern=(
-            r"^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|"
-            r"discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$"
+            r"^/(merchant|merchant_address|payment_method|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|"
+            r"discount_amount|total_amount|currency|items/[0-9]+/(name|unit|quantity|unit_price|line_total))$"
         )
     ),
 ]
@@ -191,7 +194,7 @@ class Timings(Contract):
 
 
 class ExtractionResult(Contract):
-    schema_version: Literal["1.0.0"]
+    schema_version: Literal["1.0.0", "1.1.0"]
     receipt_id: UUID
     job_id: UUID
     pipeline_version: ShortText

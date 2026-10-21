@@ -17,7 +17,7 @@ from backend.app.schemas.contracts import DocumentOCR, ExtractionResult, Receipt
 from backend.app.services.files import inspect_file
 from backend.app.services.validation import validate_receipt
 
-VERSION = "rules-0.3.0"
+VERSION = "rules-0.4.0"
 
 
 def fold(text):
@@ -68,6 +68,20 @@ def rows(ocr):
 NUMBER = r"\d{1,14}(?:[.,]\d+)*"
 QUANTITY = r"\d{1,8}(?:[.,]\d{1,3})?"
 PRINTED_AMOUNT = rf"({NUMBER})\s*(?:vnd|₫|đ|d)?"
+UNITS = {
+    "kg": "kg",
+    "g": "g",
+    "l": "l",
+    "ml": "ml",
+    "chai": "chai",
+    "hop": "hộp",
+    "goi": "gói",
+    "tui": "túi",
+    "cai": "cái",
+    "bo": "bộ",
+    "pcs": "pcs",
+    "piece": "piece",
+}
 NON_PRODUCT = (
     r"^(?:tong|tng|tam tinh|thanh toan|tien|tin |thue|vat|giam|subtotal|total|"
     r"discount|date|ngay|so ct|s ct|so hoa don|don hang|invoice|receipt|"
@@ -107,7 +121,22 @@ def layout_items(ocr, document_rows):
         if re.match(r"^(?:tong|tng|subtotal|total|thanh toan)\b", normalized):
             table_page = None
         parts = [p.strip() for p in re.split(r"\s*\|\s*|\t+|\s{2,}", text) if p.strip()]
-        if (
+        explicit_unit = None
+        if len(parts) == 5 and product_name(parts[0]):
+            unit_index, qty_index = (1, 2) if re.fullmatch(QUANTITY, parts[2]) else (2, 1)
+            if (
+                re.fullmatch(QUANTITY, parts[qty_index])
+                and re.fullmatch(r"[a-zA-ZÀ-ỹ][a-zA-ZÀ-ỹ .-]{0,49}", parts[unit_index])
+                and all(re.fullmatch(PRINTED_AMOUNT, fold(part)) for part in parts[3:])
+            ):
+                explicit_unit = UNITS.get(fold(parts[unit_index]), parts[unit_index])
+                name, qty, unit, total = parts[0], parts[qty_index], parts[3], parts[4]
+                sources = dict.fromkeys(
+                    ("name", "unit", "quantity", "unit_price", "line_total"), lines
+                )
+            else:
+                continue
+        elif (
             len(parts) == 4
             and product_name(parts[0])
             and re.fullmatch(QUANTITY, parts[1])
@@ -132,7 +161,16 @@ def layout_items(ocr, document_rows):
         qty = qty.replace(",", ".")
         if unit is not None and total is not None and Decimal(qty) > 0:
             items.append(
-                (dict(name=name[:300], quantity=qty, unit_price=unit, line_total=total), sources)
+                (
+                    dict(
+                        name=name[:300],
+                        unit=explicit_unit,
+                        quantity=qty,
+                        unit_price=unit,
+                        line_total=total,
+                    ),
+                    sources,
+                )
             )
 
     # Explicit quantity labels anchor cards. Individual boxes exclude package
@@ -254,6 +292,8 @@ def extract(ocr):
     data = dict.fromkeys(
         (
             "merchant",
+            "merchant_address",
+            "payment_method",
             "merchant_tax_id",
             "invoice_number",
             "purchase_date",
@@ -296,6 +336,29 @@ def extract(ocr):
     ]
     for row_index, (text, lines) in enumerate(document_rows):
         normalized = fold(text)
+        address = re.match(r"^(?:dia chi(?: cua hang)?|address|dc)\s*:\s*(.+)", normalized)
+        street = re.match(r"^\d+[\w/-]*\s+(?:duong|dung|street|road)\b", normalized)
+        if address or (street and row_index < 10):
+            value = text.split(":", 1)[1].strip() if address else text.strip()
+            address_lines = list(lines)
+            if row_index + 1 < len(document_rows):
+                following, following_lines = document_rows[row_index + 1]
+                if nearby(lines, following_lines, max_gap=0.025) and re.match(
+                    r"^(?:quan|qun|phuong|phung|thanh pho|thanh ph|tp\b|district|ward)",
+                    fold(following),
+                ):
+                    value += " " + following
+                    address_lines += following_lines
+            candidates.setdefault("merchant_address", []).append((value[:500], address_lines))
+        if re.search(r"thanh toan|hinh thuc|phuong thuc|payment|paid", normalized):
+            for pattern, method in (
+                (r"chuyen khoan|bank transfer", "Chuyển khoản"),
+                (r"tien mat|\bcash\b", "Tiền mặt"),
+                (r"\bthe\b|\bcard\b", "Thẻ"),
+                (r"vi dien tu|e-wallet", "Ví điện tử"),
+            ):
+                if re.search(pattern, normalized):
+                    candidates.setdefault("payment_method", []).append((method, lines))
         # Tolerate a small edit in an explicit amount label, including OCR boxes
         # joined without a colon. Always flag this inference for human review.
         if ":" in normalized or re.search(r"\s\d", normalized):
@@ -394,6 +457,14 @@ def extract(ocr):
                             candidates.setdefault(field, []).append((value, lines + next_lines))
                 break
     for values, sources in layout_items(ocr, document_rows):
+        # Only an explicit unit next to a name or in a five-column row is used;
+        # a pack description such as '4 hộp' is not proof of the sale unit.
+        name_text = values["name"]
+        unit = re.search(r"\((kg|g|l|ml|chai|hop|goi|tui|cai|bo|pcs|piece)\)\s*$", fold(name_text))
+        if not values.get("unit"):
+            values["unit"] = UNITS[unit[1]] if unit else None
+        if unit and "unit" not in sources:
+            sources["unit"] = sources["name"]
         index = len(data["items"])
         data["items"].append(dict(line_number=index + 1, **dict.fromkeys(values)))
         for key, value in values.items():
@@ -550,7 +621,7 @@ def run_pipeline(content, mime, receipt_id, job_id):
         return round((b - a) * 1000)
 
     return ExtractionResult(
-        schema_version="1.0.0",
+        schema_version="1.1.0",
         receipt_id=receipt_id,
         job_id=job_id,
         pipeline_version=VERSION,
