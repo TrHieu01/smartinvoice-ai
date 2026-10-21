@@ -2,6 +2,10 @@
 
 ## Đã qua
 
+- Trường mới: [CI commit 3e4703d](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39587265399) qua 71 pytest (8 ca ĐVT/địa chỉ/thanh toán, 8 ca adapter VLM), 14 SQL tests và 3 frontend Auth tests; TypeScript/build, Ruff, API Docker và Edge check thành công. API Render công khai version 1.1.0 trước khi áp dụng migration thứ sáu. Đã kiểm tra cột mới, RPC SECURITY INVOKER và deny anon/authenticated execute trên hosted DB; advisor không có ERROR mới.
+- Form production đã xem ba trường mới, thêm dòng nháp để kiểm tra input ĐVT rồi bỏ nháp, không lưu thay đổi vào hóa đơn thật. SQL tests xác minh worker complete → human correction → đọc lại ĐVT/địa chỉ/thanh toán và giữ nguyên baseline AI.
+- [CPU image build](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39587343837) thành công; endpoint đã lưu digest `sha256:efe3b1883b0f0000313a2389b2e0ffb2f946f94729ffd5f93b0c42168ca6533a`, active=0/max=1/idle=5s. Qwen GPU mới được kiểm thử adapter bằng phản hồi giả lập, chưa benchmark inference thật và chưa thay worker CPU production.
+
 - Parser `rules-0.3.0`: 55 pytest local và [CI commit 80a33b9](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39578596859) thành công (16 ca mới về bố cục), Ruff và contract drift đều qua. Replay OCR thật của hai hóa đơn báo lỗi: 0 → 8 và 0 → 4 sản phẩm, nhận được tổng 187.954 và 105.124; source evidence hợp lệ. Không sửa dữ liệu cũ hoặc tạo job RunPod cho replay. [Chi tiết](extraction.md).
 - [Image build 80a33b9](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39578680365) thành công; GHCR public manifest HTTP 200. Endpoint Ready, Release #3 đã nhận digest `sha256:3cd48b86fd2ebaef9657371f9130fc1da4ce233b0f2e4743935826923b132fbb`, active=0/max=1/idle=5s. Chưa chạy lại OCR end-to-end trên cloud bằng phiên bản này; replay chỉ kiểm tra extraction trên OCR cũ.
 

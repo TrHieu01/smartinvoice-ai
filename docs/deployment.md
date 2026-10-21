@@ -4,7 +4,7 @@ Supabase Free hiện tại: `smartinvoice-ai`, ref `rnjamfgzckmgvvpuywgh`, `TrHi
 
 ## Supabase
 
-5 migration đã áp dụng lên project mới; không chạy lại vào database đã có schema. Bucket `receipts` private. Edge `dispatch-jobs` đã deploy; dùng `x-dispatch-secret` tự xác thực, không mở truy cập khi thiếu secret. JWT gateway tắt để Cron/API gọi bằng shared secret.
+6 migration đã áp dụng lên project mới; không chạy lại vào database đã có schema. Bucket `receipts` private. Edge `dispatch-jobs` đã deploy; dùng `x-dispatch-secret` tự xác thực, không mở truy cập khi thiếu secret. JWT gateway tắt để Cron/API gọi bằng shared secret. Migration `receipt_optional_fields` thêm ĐVT, địa chỉ, phương thức thanh toán và cho phép extraction schema 1.1.0 cùng bản 1.0.0.
 
 Edge Secrets đã cấu hình: `DISPATCHER_SECRET`, `RUNPOD_ENDPOINT_ID`, `RUNPOD_API_KEY`. `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` được nền tảng inject. Dispatcher secret khớp backend và Vault. API key RunPod bị giới hạn GET/POST tới endpoint SmartInvoice, không có quyền GraphQL.
 
@@ -36,7 +36,7 @@ Chạy Actions **Build worker image**, đợi build/push GHCR thành công. Pack
 
 Image hiện dùng `paddlepaddle` CPU + mobile detector/Latin recognizer, tải model lúc build. Không đặt `OCR_DEVICE=gpu:0` với wheel CPU. Endpoint `smartinvoice-ocr` (`ouae2lld2k5far`) dùng CPU 2 vCPU/8 GB, giá UI lúc cấu hình $0.0000306/s. Đã xác minh có CPU Serverless trong tài khoản.
 
-Image public đã build và cập nhật endpoint: `ghcr.io/trhieu01/smartinvoice-ai-worker@sha256:3cd48b86fd2ebaef9657371f9130fc1da4ce233b0f2e4743935826923b132fbb` (commit `80a33b9`, async handler và parser `rules-0.3.0`). Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`. [Kiểm chứng extraction và cách thử bản mới](extraction.md).
+Image CPU public đã build và cập nhật endpoint: `ghcr.io/trhieu01/smartinvoice-ai-worker@sha256:efe3b1883b0f0000313a2389b2e0ffb2f946f94729ffd5f93b0c42168ca6533a` (commit `3e4703d`, async handler và parser `rules-0.4.0`). Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`. Qwen dùng image riêng, chưa bật trên production; [các trường mới và thử nghiệm GPU](extended-fields-and-vlm.md).
 
 Flex, active/min 0, max 1, concurrency 1, idle timeout ngắn, execution timeout 300s, TTL 600s. Không tạo Pod chạy liên tục/network volume. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `OCR_DEVICE=cpu` cho image hiện tại. Compute vẫn trừ credit khi chạy.
 
