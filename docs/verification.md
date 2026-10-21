@@ -2,7 +2,8 @@
 
 ## Đã qua
 
-- Parser `rules-0.3.0`: 55 pytest local (16 ca mới về bố cục), Ruff và contract drift đều qua. Replay OCR thật của hai hóa đơn báo lỗi: 0 → 8 và 0 → 4 sản phẩm, nhận được tổng 187.954 và 105.124; source evidence hợp lệ. Không sửa dữ liệu cũ hoặc tạo job RunPod cho replay. [Chi tiết](extraction.md).
+- Parser `rules-0.3.0`: 55 pytest local và [CI commit 80a33b9](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39578596859) thành công (16 ca mới về bố cục), Ruff và contract drift đều qua. Replay OCR thật của hai hóa đơn báo lỗi: 0 → 8 và 0 → 4 sản phẩm, nhận được tổng 187.954 và 105.124; source evidence hợp lệ. Không sửa dữ liệu cũ hoặc tạo job RunPod cho replay. [Chi tiết](extraction.md).
+- [Image build 80a33b9](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39578680365) thành công; GHCR public manifest HTTP 200. Endpoint Ready, Release #3 đã nhận digest `sha256:3cd48b86fd2ebaef9657371f9130fc1da4ce233b0f2e4743935826923b132fbb`, active=0/max=1/idle=5s. Chưa chạy lại OCR end-to-end trên cloud bằng phiên bản này; replay chỉ kiểm tra extraction trên OCR cũ.
 
 - 39 pytest trên [CI commit 8c06dd3](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39543587098): contract/schema, Auth/error redaction, file validation, PDF pipeline, OCR labels/items/currency và regression handler trong event loop.
 - 14 Node/PostgreSQL tests: SQL/RLS, atomic lifecycle, stale version/token, deletion, dispatcher leases/provider ID/retry budget.

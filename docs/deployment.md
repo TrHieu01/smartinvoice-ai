@@ -36,7 +36,7 @@ Chạy Actions **Build worker image**, đợi build/push GHCR thành công. Pack
 
 Image hiện dùng `paddlepaddle` CPU + mobile detector/Latin recognizer, tải model lúc build. Không đặt `OCR_DEVICE=gpu:0` với wheel CPU. Endpoint `smartinvoice-ocr` (`ouae2lld2k5far`) dùng CPU 2 vCPU/8 GB, giá UI lúc cấu hình $0.0000306/s. Đã xác minh có CPU Serverless trong tài khoản.
 
-Image public đã build và cập nhật endpoint: `ghcr.io/trhieu01/smartinvoice-ai-worker@sha256:28256a60e559909bda7e9883b5065fbae2c9d0dc25e0b95b3535bbf3f159cd88` (commit `8c06dd3`, async handler). Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`.
+Image public đã build và cập nhật endpoint: `ghcr.io/trhieu01/smartinvoice-ai-worker@sha256:3cd48b86fd2ebaef9657371f9130fc1da4ce233b0f2e4743935826923b132fbb` (commit `80a33b9`, async handler và parser `rules-0.3.0`). Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`. [Kiểm chứng extraction và cách thử bản mới](extraction.md).
 
 Flex, active/min 0, max 1, concurrency 1, idle timeout ngắn, execution timeout 300s, TTL 600s. Không tạo Pod chạy liên tục/network volume. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `OCR_DEVICE=cpu` cho image hiện tại. Compute vẫn trừ credit khi chạy.
 

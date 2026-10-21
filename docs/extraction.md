@@ -27,6 +27,8 @@ Replay OCR đã lưu của hai hóa đơn người dùng báo lỗi, không gọ
 
 ## Sử dụng bản cập nhật
 
+Ngày 21/10/2026: endpoint `smartinvoice-ocr` báo Ready, Release #3 dùng image từ commit `80a33b9`. [CI](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39578596859) và [image build](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39578680365) thành công. Giữ active=0, max=1, idle=5s; không đổi CPU sang GPU. Chưa chạy job OCR cloud mới trong lần cập nhật này.
+
 Chỉ worker dùng image mới mới áp dụng rules-0.3.0. Kết quả đã lưu không tự thay đổi và không ghi đè chỉnh sửa của người dùng. Sau khi cập nhật endpoint, tải file lên thành hóa đơn mới để so sánh; giữ bản cũ khi cần đối chiếu.
 
 Ảnh quá mờ, bố cục lạ hoặc hai giá không phân biệt được vẫn cần human review. Bước tiếp theo là tập test độc lập và đo extraction theo từng trường trước khi quyết định bổ sung VLM fallback.
