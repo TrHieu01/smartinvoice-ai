@@ -10,6 +10,6 @@ COPY backend ./backend
 COPY worker ./worker
 # Download the exact configured detector/Latin recognizer during build, not a paid cold start.
 RUN python -c "from worker.pipeline import paddle_engine; paddle_engine()"
-RUN useradd --create-home appuser && chown -R appuser:appuser /opt/models
+RUN useradd --create-home appuser && chown -R appuser:appuser /opt/models /app
 USER appuser
 CMD ["python", "-u", "-m", "worker.handler"]

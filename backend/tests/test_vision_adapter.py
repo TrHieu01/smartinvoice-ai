@@ -7,6 +7,7 @@ from PIL import Image
 
 from backend.app.schemas.contracts import ExtractionResult, ValidationWarning
 from worker.vision import enhance
+from worker.handler import log_diagnostics
 
 
 @pytest.fixture
@@ -67,13 +68,29 @@ def test_invalid_vision_output_falls_back_without_losing_ocr(baseline, invalid):
     assert result.ocr == baseline.ocr
 
 
-def test_generation_failure_does_not_expose_provider_output(baseline):
+def test_generation_failure_does_not_expose_provider_output(baseline, capsys, caplog):
     def fail(*_):
         raise RuntimeError("PRIVATE CREDENTIAL OR RECEIPT CONTENT")
 
     result = enhance(baseline, image(), "image/png", fail)
     assert result.pipeline_version.endswith("+vlm-fallback")
     assert "PRIVATE" not in result.model_dump_json()
+    stderr = capsys.readouterr().err
+    assert stderr == "VLM_DIAG generate runtime\n"
+    log_diagnostics(stderr + "PRIVATE CREDENTIAL OR RECEIPT CONTENT\n")
+    assert "stage=generate reason=runtime" in caplog.text
+    assert "PRIVATE" not in caplog.text
+
+
+def test_missing_wrapper_has_safe_diagnostics(baseline, capsys):
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps({"PRIVATE": 1}))
+    assert result.pipeline_version.endswith("+vlm-fallback")
+    assert capsys.readouterr().err == "VLM_DIAG decode missing_data\n"
+
+
+def test_child_log_forwarding_rejects_arbitrary_details(caplog):
+    log_diagnostics("VLM_DIAG generate runtime PRIVATE\nVLM_DIAG PRIVATE schema\n")
+    assert not caplog.records
 
 
 def test_vision_may_not_invent_missing_year_or_supported_currency(baseline):

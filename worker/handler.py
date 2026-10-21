@@ -3,6 +3,8 @@
 import asyncio
 import hashlib
 import json
+import logging
+import re
 import subprocess
 import sys
 
@@ -12,6 +14,14 @@ from backend.app.core.config import get_settings
 from backend.app.core.errors import AppError
 from backend.app.core.supabase import SupabaseGateway
 from backend.app.schemas.contracts import ExtractionResult, ProcessTask
+
+
+def log_diagnostics(stderr):
+    for stage, reason in re.findall(
+        r"^VLM_DIAG (prepare|generate|decode|evidence|validate) "
+        r"(runtime|schema|missing_data|missing_evidence|invalid)$", stderr, re.MULTILINE
+    )[:5]:
+        logging.getLogger(__name__).warning("VLM fallback stage=%s reason=%s", stage, reason)
 
 
 async def process(payload):
@@ -45,6 +55,7 @@ async def process(payload):
                 timeout=240,
                 check=True,
             )
+            log_diagnostics(run.stderr)
             result = ExtractionResult.model_validate_json(run.stdout)
             saved = await gateway.rpc(
                 "si_complete",

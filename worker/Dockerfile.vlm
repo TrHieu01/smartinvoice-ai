@@ -12,6 +12,6 @@ COPY worker ./worker
 RUN python -c "from worker.pipeline import paddle_engine; paddle_engine()"
 RUN python -c "from transformers import Qwen3VLForConditionalGeneration; from huggingface_hub import snapshot_download; from worker.vision import MODEL_ID, MODEL_REVISION, MODEL_DIRECTORY; snapshot_download(MODEL_ID, revision=MODEL_REVISION, local_dir=MODEL_DIRECTORY, allow_patterns=['*.json','*.safetensors','*.txt','*.model','*.jinja'])"
 RUN python -c "from transformers import AutoProcessor; from PIL import Image; p=AutoProcessor.from_pretrained('/opt/vlm', local_files_only=True, trust_remote_code=False); x=p.apply_chat_template([{'role':'user','content':[{'type':'image','image':Image.new('RGB',(56,56))},{'type':'text','text':'Extract receipt JSON.'}]}], tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors='pt'); assert x['input_ids'].shape[1] > 0"
-RUN useradd --create-home appuser && chown -R appuser:appuser /opt/models
+RUN useradd --create-home appuser && chown -R appuser:appuser /opt/models /app
 USER appuser
 CMD ["python", "-u", "-m", "worker.handler"]

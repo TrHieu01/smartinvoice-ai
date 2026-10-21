@@ -3,12 +3,13 @@
 import io
 import json
 import re
+import sys
 from functools import lru_cache
 from time import perf_counter
 
 import pymupdf
 from PIL import Image, ImageOps
-from pydantic import Field
+from pydantic import Field, ValidationError
 
 from backend.app.schemas.contracts import (
     Contract,
@@ -135,13 +136,17 @@ def generate(images, prompt):
 
 def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=None):
     started = perf_counter()
+    stage = "prepare"
     try:
         prompt, allowed_ids = prompt_for(baseline)
+        stage = "generate"
         output = (generator or generate)(receipt_images(content, mime), prompt)
+        stage = "decode"
         if len(output) > 250_000:
             raise ValueError("VLM output limit")
         fenced = re.fullmatch(r"\s*```(?:json)?\s*([\s\S]*?)\s*```\s*", output)
         payload = VisionPayload.model_validate_json(fenced[1] if fenced else output)
+        stage = "evidence"
         by_id = {line.id: line for page in baseline.ocr.pages for line in page.lines}
         evidence = []
         for source in payload.evidence:
@@ -186,6 +191,7 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
                 message="Kết quả có dùng mô hình đọc ảnh; hãy đối chiếu các trường với hóa đơn gốc.",
             )
         )
+        stage = "validate"
         result = ExtractionResult.model_validate(
             {
                 **baseline.model_dump(mode="json"),
@@ -195,7 +201,20 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
                 "pipeline_version": baseline.pipeline_version + "+qwen3vl4b",
             }
         )
-    except Exception:
+    except Exception as error:
+        reason = "runtime"
+        if isinstance(error, ValidationError):
+            reason = "schema"
+            missing = {tuple(e["loc"]) for e in error.errors() if e["type"] == "missing"}
+            if ("data",) in missing:
+                reason = "missing_data"
+            elif ("evidence",) in missing:
+                reason = "missing_evidence"
+        elif isinstance(error, ValueError):
+            reason = "invalid"
+        # Only fixed categories cross the subprocess boundary, never error text,
+        # arbitrary schema paths, provider output, or receipt content.
+        print(f"VLM_DIAG {stage} {reason}", file=sys.stderr)
         # No exception text, receipt content or provider output enters logs/UI.
         result = baseline.model_copy(
             deep=True,
