@@ -2,13 +2,13 @@
 
 Ứng dụng đọc hóa đơn Việt/Anh: upload → OCR/extraction → đối chiếu → chỉnh sửa/xác nhận → thống kê. Portfolio cho AI Application Engineer Intern.
 
-**Hiện trạng 21/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (5 migration) và RunPod CPU đã deploy. Smoke production bằng ảnh tiếng Việt giả lập đã qua luồng Auth → signed upload → Edge dispatcher → RunPod OCR → review → analytics, kèm phân quyền hai người dùng và cleanup. CI xanh: 39 pytest, 14 SQL/PostgreSQL tests, TypeScript/build, API Docker build và Edge check. Chưa benchmark hóa đơn thực; đăng ký email public cần SMTP riêng.
+**Hiện trạng 21/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (5 migration) và RunPod CPU đã deploy. Smoke production bằng ảnh tiếng Việt giả lập đã qua luồng Auth → signed upload → Edge dispatcher → RunPod OCR → review → analytics, kèm phân quyền hai người dùng và cleanup. CI xanh: 39 pytest, 14 SQL/PostgreSQL tests, 3 frontend Auth tests, TypeScript/build, API Docker build và Edge check. Đăng ký email qua Brevo SMTP đã kiểm chứng; chưa benchmark hóa đơn thực.
 
 - [Ứng dụng](https://smartinvoice-ai-coral.vercel.app) — chọn **Xem không gian mẫu** để khám phá không cần tài khoản.
 - [Swagger API](https://smartinvoice-api-v43w.onrender.com/docs) — Render Free có thể cold start.
 - [Mã nguồn](https://github.com/TrHieu01/smartinvoice-ai) · [Worker image](https://github.com/TrHieu01/smartinvoice-ai/pkgs/container/smartinvoice-ai-worker).
 
-Email đăng ký công khai chưa sẵn sàng: SMTP mặc định Supabase chỉ gửi tới email thành viên organization. Cần cấu hình SMTP riêng trước khi mời người dùng bên ngoài; giữ xác nhận email. [Giới hạn SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
+Brevo Free SMTP đã được cấu hình; người dùng đã nhận email xác nhận và đăng nhập thành công. Xác nhận email vẫn bật. [Cấu hình và kiểm chứng email](docs/email-delivery.md).
 
 ## Kiến trúc
 
@@ -71,6 +71,7 @@ uv run ruff check backend worker scripts
 uv run python scripts/export_contracts.py --check
 uv run pytest -q
 npm run test:db
+npm --prefix frontend test
 npm --prefix frontend run typecheck
 npm --prefix frontend run build
 ```

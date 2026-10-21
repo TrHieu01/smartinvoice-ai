@@ -10,7 +10,7 @@ Edge Secrets đã cấu hình: `DISPATCHER_SECRET`, `RUNPOD_ENDPOINT_ID`, `RUNPO
 
 Vault có hai secret: `smartinvoice_dispatch_url` và `smartinvoice_dispatch_secret`. Migration thứ năm bật pg_cron/pg_net; đã chạy `supabase/setup-dispatch-cron.sql` một lần, lịch `smartinvoice-dispatch` mỗi phút. Script chặn cài trùng; cài mới cần điền Vault trước khi bật lịch.
 
-Auth Site URL và Redirect URL hiện là `https://smartinvoice-ai-coral.vercel.app`. Giữ xác nhận email. **SMTP mặc định chỉ gửi tới email thành viên organization**, không hỗ trợ đăng ký email công khai. Cần SMTP riêng trước khi mời người dùng bên ngoài. [Tài liệu SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
+Auth Site URL và Redirect URL hiện là `https://smartinvoice-ai-coral.vercel.app`. Giữ xác nhận email. Custom SMTP đã cấu hình bằng **Brevo Free**, host `smtp-relay.brevo.com`, port `465` (SSL); credential chỉ lưu trong Supabase Auth settings. Người dùng đã nhận thư xác nhận và đăng nhập thành công. [Cấu hình và kiểm chứng email](email-delivery.md), [tài liệu SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## Render Free
 

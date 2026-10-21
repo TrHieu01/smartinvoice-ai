@@ -46,7 +46,7 @@ Trạng thái runtime/triển khai mới nhất: xem [verification.md](verificat
 - [x] Build/test containers và frontend; deploy Vercel Hobby + Render Free + Supabase Free.
 - [x] RunPod CPU endpoint pin digest đã kiểm tra, trong giới hạn credit $0.10 được cấp phép.
 - [x] Smoke production bằng ảnh tiếng Việt: upload → Edge → RunPod → review → analytics, tenant isolation và cleanup.
-- [ ] Cấu hình SMTP riêng cho đăng ký public (SMTP mặc định chỉ gửi tới thành viên organization).
+- [x] Brevo Free SMTP cho đăng ký public; người dùng đã nhận email xác nhận và đăng nhập thành công.
 - [ ] Smoke tests, monitoring, lỗi mẫu và kiểm tra không log dữ liệu hóa đơn.
 - [ ] Tập test độc lập, kết quả benchmark và báo cáo giới hạn.
 - [ ] Video demo 2-3 phút, README kiến trúc và các bullet CV có số liệu đã đo.

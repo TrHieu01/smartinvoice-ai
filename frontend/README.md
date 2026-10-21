@@ -6,4 +6,4 @@ Contract API: `../contracts/openapi.json`. Auth dùng Supabase, publishable key 
 
 Năm màn hình: Authentication, Dashboard, Upload, Receipt Review, History. Review dùng data hiện tại để chỉnh sửa, latest_extraction để hiện bằng chứng gốc. Signed preview tự refresh sau 240s. Chế độ mẫu chỉ để xem và được gắn nhãn; worker lỗi không được thay bằng dữ liệu mẫu.
 
-Đã deploy Vercel Hobby tại https://smartinvoice-ai-coral.vercel.app, kết nối API Render Free. Public env được nhúng lúc build, thay đổi cần redeploy. SMTP đăng ký công khai còn cần cấu hình; sample mode không cần tài khoản.
+Đã deploy Vercel Hobby tại https://smartinvoice-ai-coral.vercel.app, kết nối API Render Free. Public env được nhúng lúc build, thay đổi cần redeploy. Brevo Free SMTP đã kiểm chứng luồng đăng ký, nhận email xác nhận và đăng nhập; sample mode không cần tài khoản.

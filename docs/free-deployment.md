@@ -58,4 +58,4 @@ Supabase Cron gọi Edge Function qua pg_net mỗi phút; secret nằm trong Vau
 
 ## Tình trạng deployment
 
-Vercel Hobby: [frontend](https://smartinvoice-ai-coral.vercel.app). Render Free: [API health](https://smartinvoice-api-v43w.onrender.com/health). Supabase Free có 5 migration, private Storage, Edge Secrets và Vault/Cron. RunPod CPU đã qua smoke production với ảnh tiếng Việt giả lập; xem [verification](verification.md). Email signup công khai cần SMTP riêng vì SMTP mặc định Supabase chỉ gửi tới email thành viên organization. [SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
+Vercel Hobby: [frontend](https://smartinvoice-ai-coral.vercel.app). Render Free: [API health](https://smartinvoice-api-v43w.onrender.com/health). Supabase Free có 5 migration, private Storage, Edge Secrets và Vault/Cron. RunPod CPU đã qua smoke production với ảnh tiếng Việt giả lập; xem [verification](verification.md). Email signup đã dùng Brevo Free SMTP, được người dùng kiểm chứng nhận thư xác nhận và đăng nhập. [Cấu hình email](email-delivery.md), [SMTP](https://supabase.com/docs/guides/auth/auth-smtp).

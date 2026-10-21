@@ -4,6 +4,7 @@
 
 - 39 pytest trên [CI commit 8c06dd3](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39543587098): contract/schema, Auth/error redaction, file validation, PDF pipeline, OCR labels/items/currency và regression handler trong event loop.
 - 14 Node/PostgreSQL tests: SQL/RLS, atomic lifecycle, stale version/token, deletion, dispatcher leases/provider ID/retry budget.
+- 3 frontend Auth regression tests phân biệt lỗi giới hạn gửi email/mật khẩu và giữ thông báo an toàn; [CI commit c316cc5](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39573826657) thành công, Vercel Ready.
 - Ruff toàn bộ Python, contract drift, frontend TypeScript và production build Webpack. Turbopack gặp lỗi tiến trình trên Windows hiện tại nên dùng Webpack.
 - Supabase Free đã tạo, 5 migration thành công; private bucket và Edge dispatcher đã deploy. Edge Secrets và Vault/Cron mỗi phút đã cấu hình; đã ghi nhận Cron HTTP 200.
 - Live smoke với Supabase thật: 2 user thử, signed upload, validate/hash, worker subprocess, evidence, tenant isolation, signed download, confirm, analytics, delete. Đã dọn toàn bộ dữ liệu giả lập; không dùng RunPod credit.
@@ -14,12 +15,12 @@
 - Smoke cloud với ảnh tiếng Việt giả lập **passed**: API Render → private signed upload → Edge/Cron → RunPod → evidence → hai tenant → signed download → confirm → analytics 110.000 VND → delete. Hai user, file và DB test đã dọn. Đây là một fixture, không phải accuracy benchmark.
 - Chrome production: Auth và Dashboard mẫu đã xem; dữ liệu minh họa gắn nhãn rõ, chỉ để xem.
 - Chrome production với tài khoản thử: đăng nhập, tải lại lịch sử, xem ảnh gốc cạnh OCR/evidence, sửa tên cửa hàng sai dấu, chọn Ăn uống, xác nhận và kiểm tra dashboard 110.000 VND. Ảnh được nạp qua API vì tiện ích Chrome chưa cho phép chọn file cục bộ; thao tác chọn/upload file qua browser automation chưa kiểm chứng. Dữ liệu/tài khoản thử đã dọn.
+- Brevo Free SMTP đã lưu và kiểm tra lại sau reload Supabase Dashboard; email confirmation vẫn bật. Auth logs ngày 21/10/2026 ghi `/signup` HTTP 200, `/verify` HTTP 303; người dùng xác nhận đã nhận email và đăng nhập được. Đây là kiểm chứng email thật, tách khỏi smoke Admin API. [Chi tiết email](email-delivery.md).
 
 ## Chưa kiểm chứng
 
 - Cold start/timeout/provider retry và benchmark hóa đơn thực chưa đo đầy đủ.
 - Lần kiểm thử đầu phát hiện adapter gọi asyncio.run trong loop SDK 1.10; đã đổi async handler, regression test và smoke cloud mới thành công. OCR merchant vẫn sai dấu trên fixture; human review đã sửa được.
-- Đăng ký email public chưa sẵn sàng: cần custom SMTP; email xác nhận vẫn bật. Test user dùng Admin API, không chứng minh gửi email.
 - Benchmark hóa đơn thực, concurrency đa kết nối, cảnh báo lỗi tự động, tài khoản demo/video.
 
 ## Advisor
