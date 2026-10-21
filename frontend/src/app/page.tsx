@@ -49,6 +49,7 @@ import {
   type Summary,
 } from "@/lib/client";
 import { sampleAnalytics, sampleDetail, samples } from "@/lib/demo";
+import { authErrorMessage } from "@/lib/auth-errors";
 
 type View = "dashboard" | "receipts" | "upload";
 const fields: [keyof Omit<Data, "items">, string, string][] = [
@@ -1104,12 +1105,7 @@ function Auth({ onDemo }: { onDemo: () => void }) {
             options: { emailRedirectTo: location.origin },
           })
         : await supabase().auth.signInWithPassword({ email, password });
-      if (error)
-        throw new Error(
-          signup
-            ? "Chưa tạo được tài khoản. Hãy kiểm tra email, mật khẩu hoặc thử lại sau."
-            : "Chưa đăng nhập được. Hãy kiểm tra email, mật khẩu và xác nhận email của bạn.",
-        );
+      if (error) throw new Error(authErrorMessage(error, signup));
       if (signup && !data.session)
         setMessage(
           "Đã gửi email xác nhận. Hãy mở email để kích hoạt tài khoản rồi đăng nhập.",
