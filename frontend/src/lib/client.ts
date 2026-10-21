@@ -32,23 +32,27 @@ const messages: Record<string, string> = {
   invalid_state: "Hóa đơn chưa ở trạng thái cho phép thao tác này.",
 };
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const base =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    (process.env.NODE_ENV === "development" ? "http://localhost:8000" : "");
+  if (!base)
+    throw new Error(
+      "Máy chủ xử lý hóa đơn chưa được kết nối. Bạn vẫn có thể xem không gian mẫu.",
+    );
   const { data } = await supabase().auth.getSession();
   if (!data.session) throw new Error("Hãy đăng nhập để tiếp tục.");
   let response: Response;
   try {
-    response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1${path}`,
-      {
-        ...init,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${data.session.access_token}`,
-          ...init.headers,
-        },
-        cache: "no-store",
-        signal: AbortSignal.timeout(90000),
+    response = await fetch(`${base}/api/v1${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${data.session.access_token}`,
+        ...init.headers,
       },
-    );
+      cache: "no-store",
+      signal: AbortSignal.timeout(90000),
+    });
   } catch {
     throw new Error(
       "Chưa kết nối được máy chủ. Dịch vụ có thể đang khởi động; hãy thử lại.",

@@ -178,7 +178,10 @@ export default function Home() {
     )
       return;
     let stopped = false;
-    const timer = setInterval(async () => {
+    let delay = 2000;
+    const deadline = Date.now() + 15 * 60_000;
+    let timer: ReturnType<typeof setTimeout>;
+    async function poll() {
       try {
         const result = await api<{ status: string }>(
           `/receipts/${selected.id}/status`,
@@ -193,10 +196,19 @@ export default function Home() {
       } catch (err) {
         if (!stopped) setError((err as Error).message);
       }
-    }, 4000);
+      if (!stopped && Date.now() < deadline) {
+        delay = Math.min(delay * 1.6, 30_000);
+        timer = setTimeout(poll, delay);
+      } else if (!stopped) {
+        setError(
+          "Xử lý lâu hơn dự kiến. Bạn có thể mở lại hóa đơn từ lịch sử để kiểm tra sau.",
+        );
+      }
+    }
+    timer = setTimeout(poll, delay);
     return () => {
       stopped = true;
-      clearInterval(timer);
+      clearTimeout(timer);
     };
   }, [selected?.id, selected?.status, demo, refresh]); // eslint-disable-line react-hooks/exhaustive-deps
 
