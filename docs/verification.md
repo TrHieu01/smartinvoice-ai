@@ -2,6 +2,9 @@
 
 ## Đã qua
 
+- Bản CPU hiện tại `rules-0.4.1`: [CI 6d8c55a](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39589102189) qua 72 pytest, 14 SQL tests, 3 frontend Auth tests và các kiểm tra build. Bổ sung regression không lấy địa chỉ người nhận làm địa chỉ cửa hàng. [CPU image build](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39589255590) thành công; endpoint Ready với digest `sha256:b157613e1b4f86568f0cba5904c5078cdd0acfbce8f5fab3e2f28d25d526c3bc`, active=0/max=1/idle=5s.
+- [GPU image build 75ab41d](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39588380711) thành công, GHCR public manifest HTTP 200. Processor đã nhận ảnh giả lập trong build; chưa chạy model inference trên GPU. Xem [image và kế hoạch thử](extended-fields-and-vlm.md).
+
 - Trường mới: [CI commit 3e4703d](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39587265399) qua 71 pytest (8 ca ĐVT/địa chỉ/thanh toán, 8 ca adapter VLM), 14 SQL tests và 3 frontend Auth tests; TypeScript/build, Ruff, API Docker và Edge check thành công. API Render công khai version 1.1.0 trước khi áp dụng migration thứ sáu. Đã kiểm tra cột mới, RPC SECURITY INVOKER và deny anon/authenticated execute trên hosted DB; advisor không có ERROR mới.
 - Form production đã xem ba trường mới, thêm dòng nháp để kiểm tra input ĐVT rồi bỏ nháp, không lưu thay đổi vào hóa đơn thật. SQL tests xác minh worker complete → human correction → đọc lại ĐVT/địa chỉ/thanh toán và giữ nguyên baseline AI.
 - [CPU image build](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39587343837) thành công; endpoint đã lưu digest `sha256:efe3b1883b0f0000313a2389b2e0ffb2f946f94729ffd5f93b0c42168ca6533a`, active=0/max=1/idle=5s. Qwen GPU mới được kiểm thử adapter bằng phản hồi giả lập, chưa benchmark inference thật và chưa thay worker CPU production.

@@ -2,7 +2,7 @@
 
 Ứng dụng đọc hóa đơn Việt/Anh: upload → OCR/extraction → đối chiếu → chỉnh sửa/xác nhận → thống kê. Portfolio cho AI Application Engineer Intern.
 
-**Hiện trạng 21/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (6 migration) và RunPod CPU đã deploy. Smoke production bằng ảnh tiếng Việt giả lập đã qua luồng Auth → signed upload → Edge dispatcher → RunPod OCR → review → analytics, kèm phân quyền hai người dùng và cleanup. CI xanh: 71 pytest, 14 SQL/PostgreSQL tests, 3 frontend Auth tests, TypeScript/build, API Docker build và Edge check. Đăng ký email qua Brevo SMTP đã kiểm chứng; chưa benchmark hóa đơn thực.
+**Hiện trạng 21/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (6 migration) và RunPod CPU đã deploy. Smoke production bằng ảnh tiếng Việt giả lập đã qua luồng Auth → signed upload → Edge dispatcher → RunPod OCR → review → analytics, kèm phân quyền hai người dùng và cleanup. CI xanh: 72 pytest, 14 SQL/PostgreSQL tests, 3 frontend Auth tests, TypeScript/build, API Docker build và Edge check. Đăng ký email qua Brevo SMTP đã kiểm chứng; chưa benchmark hóa đơn thực.
 
 - [Ứng dụng](https://smartinvoice-ai-coral.vercel.app) — chọn **Xem không gian mẫu** để khám phá không cần tài khoản.
 - [Swagger API](https://smartinvoice-api-v43w.onrender.com/docs) — Render Free có thể cold start.
@@ -32,7 +32,7 @@ Không dùng LLM bắt buộc, Redis hay Cloud Tasks. Database là nguồn trạ
 
 Parser `rules-0.3.0` hỗ trợ bảng/thẻ sản phẩm nhiều dòng, số chứng từ và tổng tiền; loại thanh trạng thái khỏi tên cửa hàng. Replay hai mẫu báo lỗi nhận được 8 và 4 sản phẩm; đây chưa phải benchmark. [Kiểm chứng và giới hạn extraction](docs/extraction.md).
 
-`rules-0.4.0` và API 1.1 bổ sung ĐVT sản phẩm, địa chỉ cửa hàng và phương thức thanh toán từ extraction đến human review/lưu dữ liệu. Adapter Qwen3-VL-4B được chuẩn bị trong image GPU riêng, tắt mặc định; chưa chạy benchmark GPU và chưa thay CPU production. [Trường mới và kế hoạch thử model](docs/extended-fields-and-vlm.md).
+`rules-0.4.1` và API 1.1 bổ sung ĐVT sản phẩm, địa chỉ cửa hàng và phương thức thanh toán từ extraction đến human review/lưu dữ liệu. Adapter Qwen3-VL-4B được chuẩn bị trong image GPU riêng, tắt mặc định; chưa chạy benchmark GPU và chưa thay CPU production. [Trường mới và kế hoạch thử model](docs/extended-fields-and-vlm.md).
 
 | Thành phần | Công nghệ | Nền tảng |
 |---|---|---|

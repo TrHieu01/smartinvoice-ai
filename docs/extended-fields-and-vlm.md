@@ -34,3 +34,13 @@ Chưa tạo endpoint GPU hoặc gọi inference tính phí khi chưa được ng
 Đề xuất tối đa **0,50 USD từ credit hiện có** cho tối đa 3 hóa đơn thử; không nạp tiền/nâng gói và không chuyển traffic production sang GPU tự động. Ngân sách chỉ có hiệu lực sau khi người dùng đồng ý. Giá công khai ngày 21/10/2026 cho nhóm Serverless 24 GB là khoảng $0,69/giờ GPU; chi phí còn phụ thuộc initialization, thời gian chạy, idle và disk. [Giá RunPod](https://www.runpod.io/pricing), [cách tính khi job lỗi](https://www.runpod.io/blog/failed-requests-real-charges-how-runpod-serverless-billing-works-when-workers-fail).
 
 Đây là giới hạn chi tiêu do phiên thử theo dõi, không phải hard cap tự động của RunPod. Không gửi thêm job nếu chi phí không còn đủ; kết thúc lượt thử phải dừng GPU rồi xác nhận worker đã ngừng. Đo đúng theo từng trường/sản phẩm, thời gian và chi phí, đối chiếu baseline trước khi quyết định dùng lâu dài.
+
+## Image thử đã build
+
+[Build 75ab41d](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39588380711) thành công; package public và anonymous manifest HTTP 200. Image pin:
+
+```text
+ghcr.io/trhieu01/smartinvoice-ai-worker-vlm@sha256:7259fbf7326319360cb6cc19810e5b00b7e1ce2f55c9579f20f15eb92a40a581
+```
+
+Weights và processor được nạp sẵn; CPU build đã kiểm tra processor nhận ảnh giả lập. Đây chưa phải kiểm chứng inference hay chất lượng trích xuất GPU. Candidate dùng baseline rules-0.4.0; production CPU dùng rules-0.4.1 với guard địa chỉ người nhận bổ sung. Adapter VLM không thay đổi giữa hai bản.
