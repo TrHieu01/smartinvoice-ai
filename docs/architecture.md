@@ -1,6 +1,6 @@
 # SmartInvoice AI - Architecture v1.2
 
-Ngày chốt thiết kế: 21/10/2026. Bản v1.2 cập nhật theo yêu cầu dùng nền tảng Free và **RunPod credit hiện có**, không cần chạy OCR trên máy cá nhân. Chưa tạo Pod/endpoint.
+Ngày cập nhật: 21/10/2026. Dùng nền tảng Free và **RunPod credit hiện có**, không cần máy cá nhân duy trì OCR. Vercel/Render/Supabase đã deploy; RunPod CPU endpoint đã tạo. [Trạng thái kiểm chứng](verification.md).
 
 ## Phạm vi
 
@@ -68,7 +68,7 @@ Sửa `needs_review` và xác nhận lại `confirmed` không cần đổi trạ
 
 ## Transactions bắt buộc khi triển khai
 
-Database schema đã có constraints; các command/RPC bên dưới là yêu cầu cho giai đoạn implementation, chưa có runtime trong repository.
+Database schema, constraints và các command/RPC bên dưới đã triển khai trong migrations; API và worker gọi RPC server-only.
 
 | Command | Những thao tác phải chung transaction |
 | --- | --- |
@@ -92,7 +92,7 @@ Luôn khóa theo thứ tự **receipt -> job -> outbox**. Claim theo danh sách 
 - Dispatcher dùng lease riêng để không gửi cùng outbox đồng thời. Timeout khi gửi có thể tạo tình huống provider đã nhận nhưng API chưa lưu ID: không retry liên tục; backoff, tối đa 3 lần gửi tự động rồi ghi lỗi để kiểm tra. Idempotency database ngăn dữ liệu trùng, không bảo đảm RunPod không tính compute cho delivery lặp.
 - Reconciler đọc cả provider status lẫn `processing_jobs`; không gửi job thứ hai chỉ vì job đầu còn chờ cấp GPU. Provider success trong khi database chưa commit không được coi là hoàn tất.
 - Kết quả lặp lại không insert bản thứ hai vì `extraction_results.job_id` unique.
-- Chưa có GPU hoặc hết credit không được giả thành OCR thành công; UI dừng polling dày sau 2 phút và cho phép kiểm tra lại.
+- Khi provider thiếu compute hoặc hết credit, job có thể thất bại; không tạo kết quả OCR giả. UI polling có backoff 2–30s và dừng sau 15 phút, cho phép kiểm tra lại.
 
 ## Xóa dữ liệu
 

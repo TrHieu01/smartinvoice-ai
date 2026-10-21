@@ -95,4 +95,4 @@ Xóa tài khoản phải cleanup receipt/file trước vì FK tới auth.users l
 
 ## Kiểm chứng hiện tại
 
-`npm run test:db` áp dụng migration thật trên PGlite, kiểm tra tenant isolation, anonymous access, grants, child ownership, unique active job, stale version, fencing token, state machine, immutable history, tombstone và bucket policy. Auth/Storage schemas trong test là fixtures tối thiểu. Chưa kiểm thử HTTP Storage/signed URLs hoặc concurrency nhiều connection trên Supabase thật.
+`npm run test:db` áp dụng các application migration trên PGlite, kiểm tra tenant isolation, anonymous access, grants, child ownership, unique active job, stale version, fencing token, state machine, immutable history, tombstone và bucket policy. Auth/Storage schemas trong test là fixtures tối thiểu. Migration pg_cron/pg_net được kiểm tra trên hosted Supabase vì cần background worker. Smoke Supabase thật đã kiểm chứng HTTP Auth/Storage/signed URLs và hai owner; concurrency nhiều connection chưa benchmark.

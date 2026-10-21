@@ -1,6 +1,6 @@
 # REST API Contract v1.0.0
 
-Nguồn máy đọc: `contracts/openapi.json`, được sinh từ `backend/app/schemas/contracts.py` và `scripts/export_contracts.py`. Đây là contract; chưa có server API runtime.
+Nguồn máy đọc: `contracts/openapi.json`, được sinh từ `backend/app/schemas/contracts.py` và `scripts/export_contracts.py`. Runtime nằm tại `backend/app/main.py`; [Swagger production](https://smartinvoice-api-v43w.onrender.com/docs).
 
 ## Quy ước chung
 

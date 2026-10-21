@@ -2,7 +2,13 @@
 
 Ứng dụng đọc hóa đơn Việt/Anh: upload → OCR/extraction → đối chiếu → chỉnh sửa/xác nhận → thống kê. Portfolio cho AI Application Engineer Intern.
 
-**Hiện trạng 21/10/2026:** đã có frontend Next.js, API FastAPI, worker PaddleOCR, schema/RLS, transactional jobs/outbox, Edge dispatcher và cấu hình CI/container. Supabase Free `smartinvoice-ai` đã được tạo tại Singapore, áp dụng 4 migration. Luồng Auth/Storage/API/worker/database thật đã qua smoke test bằng PDF giả lập. OCR CPU cũng đã nhận dạng ảnh hóa đơn tiếng Việt tổng hợp. Chưa benchmark hóa đơn thực, chưa có URL production Vercel/Render/RunPod.
+**Hiện trạng 21/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (5 migration) và RunPod CPU đã deploy. Smoke production bằng ảnh tiếng Việt giả lập đã qua luồng Auth → signed upload → Edge dispatcher → RunPod OCR → review → analytics, kèm phân quyền hai người dùng và cleanup. CI xanh: 39 pytest, 14 SQL/PostgreSQL tests, TypeScript/build, API Docker build và Edge check. Chưa benchmark hóa đơn thực; đăng ký email public cần SMTP riêng.
+
+- [Ứng dụng](https://smartinvoice-ai-coral.vercel.app) — chọn **Xem không gian mẫu** để khám phá không cần tài khoản.
+- [Swagger API](https://smartinvoice-api-v43w.onrender.com/docs) — Render Free có thể cold start.
+- [Mã nguồn](https://github.com/TrHieu01/smartinvoice-ai) · [Worker image](https://github.com/TrHieu01/smartinvoice-ai/pkgs/container/smartinvoice-ai-worker).
+
+Email đăng ký công khai chưa sẵn sàng: SMTP mặc định Supabase chỉ gửi tới email thành viên organization. Cần cấu hình SMTP riêng trước khi mời người dùng bên ngoài; giữ xác nhận email. [Giới hạn SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## Kiến trúc
 
@@ -33,7 +39,7 @@ Không dùng LLM bắt buộc, Redis hay Cloud Tasks. Database là nguồn trạ
 | Queue | Transactional outbox, leases, Edge/Cron | Supabase |
 | CI/image | GitHub Actions/GHCR | Trong quota miễn phí |
 
-RunPod là compute tính phí theo sử dụng. Chỉ bật sau khi image đã build và đã chọn giới hạn: **0 active workers, tối đa 1 worker**, không tạo Pod chạy liên tục. Image hiện là Paddle CPU baseline; chưa đo GPU. Không tự nâng nền tảng sang gói trả phí. [Chi phí và nguồn chính thức](docs/free-deployment.md).
+RunPod là compute tính phí theo sử dụng: **0 active workers, tối đa 1 worker**, idle 5s, CPU 2 vCPU/8 GB. Không tạo Pod chạy liên tục. Image hiện là Paddle CPU baseline; chưa đo GPU. Không tự nâng nền tảng sang gói trả phí. [Chi phí và nguồn chính thức](docs/free-deployment.md).
 
 ## Chạy local
 
@@ -76,6 +82,8 @@ Kiểm tra cloud có chủ đích, **chỉ trên project phát triển**; tạo 
 ```powershell
 uv run python -m scripts.smoke_cloud --project YOUR_DEVELOPMENT_PROJECT_REF
 ```
+
+Để kiểm tra API đã deploy, thêm `--api-origin https://YOUR_API_HOST`. **Chỉ khi đã cho phép dùng credit**, thêm `--remote-worker --image` để gửi một ảnh giả lập qua dispatcher/RunPod. Script tạo user dùng một lần và dọn đúng dữ liệu thử; không kiểm chứng email SMTP.
 
 Kiểm tra ảnh OCR, tải model lần đầu, không tự chạy trong CI:
 

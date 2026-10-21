@@ -38,6 +38,9 @@ test('SmartInvoice migration and access invariants', async (t) => {
   `);
   const migrationDir = new URL('../supabase/migrations/', import.meta.url);
   for (const name of (await readdir(migrationDir)).filter(n => n.endsWith('.sql')).sort()) {
+    // pg_cron/pg_net background workers require hosted Postgres; checked there.
+    // All application schema, RPC and RLS migrations still execute in PGlite.
+    if (name.endsWith('_dispatcher_extensions.sql')) continue;
     await db.exec(await readFile(new URL(name, migrationDir), 'utf8'));
   }
 

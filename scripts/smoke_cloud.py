@@ -1,6 +1,7 @@
 """Opt-in live Auth/Storage/API/worker test using disposable synthetic data.
 
-Only run against the explicitly named development project. No RunPod requests.
+Only run against the explicitly named project, with disposable synthetic data.
+RunPod requests require the explicit --remote-worker flag and a configured dispatcher.
 Test-only cleanup removes exactly the UUIDs created by this invocation.
 """
 
@@ -9,6 +10,7 @@ import asyncio
 import io
 import json
 import secrets
+import time
 from datetime import date
 from uuid import uuid4
 
@@ -60,9 +62,13 @@ def fixture_image():
     return output.getvalue()
 
 
-def cloud(project):
+def cloud(project, api_origin=None, remote_worker=False, image=False):
     settings = get_settings()
     assert settings.supabase_url == f"https://{project}.supabase.co", "Project mismatch"
+    if api_origin:
+        assert api_origin.startswith("https://"), "Cloud API must use HTTPS"
+    if remote_worker:
+        assert api_origin, "Remote worker smoke requires the deployed API"
     key = settings.supabase_secret_key.get_secret_value()
     headers = {"apikey": key, "Authorization": "Bearer " + key}
     users, receipts, paths = [], [], []
@@ -88,15 +94,42 @@ def cloud(project):
                 )
                 login.raise_for_status()
                 tokens.append(login.json()["access_token"])
-            with TestClient(create_app(settings), raise_server_exceptions=False) as client:
+            api = (
+                httpx.Client(base_url=api_origin, timeout=120)
+                if api_origin
+                else TestClient(create_app(settings), raise_server_exceptions=False)
+            )
+            with api as client:
+                assert client.get("/health").status_code == 200
+                assert client.get("/api/v1/receipts").status_code == 401
+                if api_origin:
+                    origin = "https://smartinvoice-ai-coral.vercel.app"
+                    preflight = client.options(
+                        "/api/v1/receipts",
+                        headers={
+                            "Origin": origin,
+                            "Access-Control-Request-Method": "POST",
+                            "Access-Control-Request-Headers": "authorization,content-type",
+                        },
+                    )
+                    assert preflight.headers.get("access-control-allow-origin") == origin
+                    denied = client.options(
+                        "/api/v1/receipts",
+                        headers={
+                            "Origin": "https://untrusted.example",
+                            "Access-Control-Request-Method": "POST",
+                        },
+                    )
+                    assert "access-control-allow-origin" not in denied.headers
                 client.headers["Authorization"] = "Bearer " + tokens[0]
-                payload = fixture_pdf()
+                payload = fixture_image() if image else fixture_pdf()
+                content_type = "image/png" if image else "application/pdf"
                 create = client.post(
                     "/api/v1/receipts",
                     headers={"Idempotency-Key": str(uuid4())},
                     json={
-                        "filename": "synthetic-smoke.pdf",
-                        "content_type": "application/pdf",
+                        "filename": "synthetic-smoke.png" if image else "synthetic-smoke.pdf",
+                        "content_type": content_type,
                         "size_bytes": len(payload),
                     },
                 )
@@ -111,7 +144,7 @@ def cloud(project):
                     params={"token": upload["token"]},
                     content=payload,
                     headers={
-                        "Content-Type": "application/pdf",
+                        "Content-Type": content_type,
                         "x-upsert": "false",
                         "Authorization": "Bearer " + tokens[0],
                     },
@@ -121,8 +154,21 @@ def cloud(project):
                     f"/api/v1/receipts/{rid}/submit", headers={"Idempotency-Key": str(uuid4())}
                 )
                 assert submitted.status_code == 202, submitted.text
-                worker = asyncio.run(process({"job_id": submitted.json()["job"]["id"]}))
-                assert worker["decision"] == "saved", worker
+                if remote_worker:
+                    deadline = time.monotonic() + 600
+                    while time.monotonic() < deadline:
+                        state = client.get(f"/api/v1/receipts/{rid}/status")
+                        assert state.status_code == 200, state.status_code
+                        status = state.json()["status"]
+                        if status == "needs_review":
+                            break
+                        assert status in {"queued", "processing"}, status
+                        time.sleep(5)
+                    else:
+                        raise AssertionError("Remote worker did not finish in 600 seconds")
+                else:
+                    worker = asyncio.run(process({"job_id": submitted.json()["job"]["id"]}))
+                    assert worker["decision"] == "saved", worker
                 detail = client.get(f"/api/v1/receipts/{rid}")
                 assert detail.status_code == 200, detail.text
                 detail = detail.json()
@@ -153,12 +199,15 @@ def cloud(project):
                         {
                             "live_smoke": "passed",
                             "auth_users": 2,
-                            "file": "synthetic PDF",
+                            "file": "synthetic Vietnamese PNG" if image else "synthetic PDF",
+                            "api": api_origin or "local TestClient",
                             "steps": [
                                 "Auth",
                                 "signed upload",
                                 "file validation",
-                                "worker subprocess",
+                                "RunPod via Edge dispatcher"
+                                if remote_worker
+                                else "local worker subprocess",
                                 "evidence",
                                 "tenant isolation",
                                 "signed download",
@@ -166,7 +215,7 @@ def cloud(project):
                                 "analytics",
                                 "delete",
                             ],
-                            "runpod_credit_used": False,
+                            "runpod_credit_used": remote_worker,
                         }
                     )
                 )
@@ -184,6 +233,13 @@ def cloud(project):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", help="Explicit development project ref for live test")
+    parser.add_argument("--api-origin", help="Explicit HTTPS origin of the deployed API")
+    parser.add_argument(
+        "--remote-worker", action="store_true", help="Spend RunPod credit via dispatcher"
+    )
+    parser.add_argument(
+        "--image", action="store_true", help="Use a synthetic Vietnamese image instead of PDF"
+    )
     parser.add_argument(
         "--ocr", action="store_true", help="Download models and test a synthetic Vietnamese image"
     )
@@ -204,6 +260,6 @@ if __name__ == "__main__":
             )
         )
     elif args.project:
-        cloud(args.project)
+        cloud(args.project, args.api_origin, args.remote_worker, args.image)
     else:
         parser.error("Specify --project or --ocr")

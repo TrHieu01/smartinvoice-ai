@@ -4,13 +4,13 @@ Supabase Free hiện tại: `smartinvoice-ai`, ref `rnjamfgzckmgvvpuywgh`, `TrHi
 
 ## Supabase
 
-4 migration đã áp dụng lên project mới; không chạy lại vào database đã có schema. Bucket `receipts` private. Edge `dispatch-jobs` đã deploy; dùng `x-dispatch-secret` tự xác thực, không mở truy cập khi thiếu secret. JWT gateway tắt để Cron/API gọi bằng shared secret.
+5 migration đã áp dụng lên project mới; không chạy lại vào database đã có schema. Bucket `receipts` private. Edge `dispatch-jobs` đã deploy; dùng `x-dispatch-secret` tự xác thực, không mở truy cập khi thiếu secret. JWT gateway tắt để Cron/API gọi bằng shared secret.
 
-Điền Edge Secrets: `DISPATCHER_SECRET`, `RUNPOD_ENDPOINT_ID`, `RUNPOD_API_KEY`. `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` được nền tảng inject. Dispatcher secret phải khớp backend và Vault. Khi chưa cấu hình, trả 401/503; chưa bật Cron.
+Edge Secrets đã cấu hình: `DISPATCHER_SECRET`, `RUNPOD_ENDPOINT_ID`, `RUNPOD_API_KEY`. `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` được nền tảng inject. Dispatcher secret khớp backend và Vault. API key RunPod bị giới hạn GET/POST tới endpoint SmartInvoice, không có quyền GraphQL.
 
-Sau khi có endpoint, lưu trong Vault hai secret: `smartinvoice_dispatch_url` = URL function, `smartinvoice_dispatch_secret` = secret xác thực. Bật Cron/pg_net qua Dashboard Integrations rồi chạy `supabase/setup-dispatch-cron.sql` một lần; script chặn cài trùng.
+Vault có hai secret: `smartinvoice_dispatch_url` và `smartinvoice_dispatch_secret`. Migration thứ năm bật pg_cron/pg_net; đã chạy `supabase/setup-dispatch-cron.sql` một lần, lịch `smartinvoice-dispatch` mỗi phút. Script chặn cài trùng; cài mới cần điền Vault trước khi bật lịch.
 
-Auth URL Configuration: Site URL = URL frontend production; thêm chính xác domain vào Redirect URLs. Local dùng `http://localhost:3000` và `http://127.0.0.1:3000`. Giữ xác nhận email; production cần cấu hình SMTP khi vượt hạn mức email mặc định.
+Auth Site URL và Redirect URL hiện là `https://smartinvoice-ai-coral.vercel.app`. Giữ xác nhận email. **SMTP mặc định chỉ gửi tới email thành viên organization**, không hỗ trợ đăng ký email công khai. Cần SMTP riêng trước khi mời người dùng bên ngoài. [Tài liệu SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
 
 ## Render Free
 
@@ -34,7 +34,9 @@ Env được nhúng khi build; thay đổi cần redeploy. Không đưa secret/s
 
 Chạy Actions **Build worker image**, đợi build/push GHCR thành công. Package private cần đúng registry credential; không nhúng token vào image. Pin image bằng SHA đã kiểm tra.
 
-Image hiện dùng `paddlepaddle` CPU + mobile detector/Latin recognizer, tải model lúc build. Không đặt `OCR_DEVICE=gpu:0` với wheel CPU. Cần xác minh loại phần cứng endpoint trong tài khoản: nếu chỉ có GPU, làm image GPU tương thích CUDA và benchmark trước, tránh trả tiền GPU để chạy OCR CPU.
+Image hiện dùng `paddlepaddle` CPU + mobile detector/Latin recognizer, tải model lúc build. Không đặt `OCR_DEVICE=gpu:0` với wheel CPU. Endpoint `smartinvoice-ocr` (`ouae2lld2k5far`) dùng CPU 2 vCPU/8 GB, giá UI lúc cấu hình $0.0000306/s. Đã xác minh có CPU Serverless trong tài khoản.
+
+Image public đã build và cập nhật endpoint: `ghcr.io/trhieu01/smartinvoice-ai-worker@sha256:28256a60e559909bda7e9883b5065fbae2c9d0dc25e0b95b3535bbf3f159cd88` (commit `8c06dd3`, async handler). Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`.
 
 Flex, active/min 0, max 1, concurrency 1, idle timeout ngắn, execution timeout 300s, TTL 600s. Không tạo Pod chạy liên tục/network volume. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `OCR_DEVICE=cpu` cho image hiện tại. Compute vẫn trừ credit khi chạy.
 

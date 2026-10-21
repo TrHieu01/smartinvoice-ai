@@ -22,7 +22,7 @@ Supabase Free hiện có 500 MB database và 1 GB file storage; project có th�
 
 ## RunPod: sử dụng credit, không gọi là miễn phí
 
-Chưa tạo endpoint, Pod, network volume hoặc gọi inference. Đề xuất Serverless queue endpoint: active workers = 0, max workers = 1, một job mỗi worker, timeout hữu hạn. Dùng Flex thay vì bật worker luôn chạy. Khi deploy sẽ xác minh chính xác các field cấu hình theo SDK/API đang dùng.
+Đã tạo Serverless queue endpoint `smartinvoice-ocr`: CPU 2 vCPU/8 GB, active workers = 0, max workers = 1, idle 5s, execution timeout 300s. Giá UI lúc cấu hình $0.0000306/s. Không tạo Pod hoặc volume. Chủ dự án cho phép tối đa $0.10 credit hiện có cho lần triển khai/kiểm thử này; đây không phải mức trần chi tiêu tích hợp của RunPod.
 
 Compute có thể tính phí trong thời gian khởi động model, xử lý và idle timeout. Credit là nguồn thanh toán, không biến dịch vụ thành free tier. Không tự nạp tiền, bật auto-top-up hoặc mua volume. [RunPod pricing](https://docs.runpod.io/serverless/pricing).
 
@@ -45,12 +45,12 @@ GitHub Actions standard runners miễn phí cho public repository; larger runner
 
 ## Queue và cleanup không cần Google Cloud
 
-Supabase Cron có thể gọi Edge Function qua pg_net; secret nằm trong Vault. Lịch reconcile dự kiến 5 phút, API kích hoạt dispatch ngay khi submit. Dispatcher phải tự xác thực bằng server-only credential; publishable key không phải bằng chứng đủ quyền để dispatch việc tốn credit. Chưa bật lịch trên tài khoản thật. [Scheduling Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions).
+Supabase Cron gọi Edge Function qua pg_net mỗi phút; secret nằm trong Vault. API kích hoạt dispatch ngay khi submit. Dispatcher tự xác thực bằng server-only credential; publishable key không đủ quyền dispatch việc tốn credit. Đã bật lịch trên project SmartInvoice. [Scheduling Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions).
 
 ## Giữ trong hạn mức
 
 - Giới hạn app: 5 MB/file, tối đa 5 trang PDF và 20 triệu pixel/ảnh.
-- Dự kiến quota app cho demo: 20 uploads/người/ngày; cần enforcement atomic ở backend trước public demo.
+- Quota app: 20 uploads/người/ngày, enforcement atomic tại database; tối đa 3 lượt xử lý/hóa đơn.
 - Giới hạn tổng storage của app thấp hơn quota provider; cleanup file mồ côi/receipt đã xóa và tránh lưu nhiều bản ảnh render.
 - Polling có backoff; giữ raw OCR theo policy retention, không log nội dung hóa đơn.
 - Chỉ dùng subdomain có sẵn của provider, không mua domain/add-on.
@@ -58,4 +58,4 @@ Supabase Cron có thể gọi Edge Function qua pg_net; secret nằm trong Vault
 
 ## Tình trạng deployment
 
-Chưa đăng nhập hay thay đổi tài khoản Vercel/Render/Supabase/RunPod. Chưa có URL demo. Bảng trên là lựa chọn kiến trúc đã nghiên cứu, không phải xác nhận các dịch vụ đã được tạo hoặc triển khai thành công.
+Vercel Hobby: [frontend](https://smartinvoice-ai-coral.vercel.app). Render Free: [API health](https://smartinvoice-api-v43w.onrender.com/health). Supabase Free có 5 migration, private Storage, Edge Secrets và Vault/Cron. RunPod CPU đã qua smoke production với ảnh tiếng Việt giả lập; xem [verification](verification.md). Email signup công khai cần SMTP riêng vì SMTP mặc định Supabase chỉ gửi tới email thành viên organization. [SMTP](https://supabase.com/docs/guides/auth/auth-smtp).
