@@ -1,0 +1,17 @@
+{
+  "expected_version": 4,
+  "action": "confirm",
+  "data": {
+    "merchant": "Cửa hàng Mẫu",
+    "merchant_tax_id": null,
+    "invoice_number": "HD-001",
+    "purchase_date": "2026-10-21",
+    "subtotal": "100000.00",
+    "tax_amount": "8000.00",
+    "discount_amount": null,
+    "total_amount": "108000.00",
+    "currency": "VND",
+    "items": []
+  },
+  "category": "shopping"
+}

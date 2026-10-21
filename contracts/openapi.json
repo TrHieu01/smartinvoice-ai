@@ -1,0 +1,2551 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SmartInvoice AI API",
+    "version": "1.0.0",
+    "description": "Contract milestone; runtime not yet implemented. Auth sign-up/sign-in uses Supabase Auth directly."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Planned local API"
+    }
+  ],
+  "security": [
+    {
+      "SupabaseBearer": []
+    }
+  ],
+  "paths": {
+    "/api/v1/receipts": {
+      "post": {
+        "operationId": "createReceipt",
+        "summary": "Create receipt and signed upload ticket",
+        "description": "Same user/key and payload returns the same receipt. A replay may mint a fresh ticket only while awaiting_upload; record maximum ticket expiry before responding. After submit upload=null. 5 MB = 5,000,000 bytes. Use Supabase uploadToSignedUrl(path, token, file), upsert=false.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateReceiptResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Idempotent replay; current receipt and fresh ticket when still awaiting upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateReceiptResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceiptRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listReceipts",
+        "summary": "Search own receipts",
+        "description": "",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "merchant",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 300
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "awaiting_upload",
+                "queued",
+                "processing",
+                "needs_review",
+                "confirmed",
+                "failed"
+              ]
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "min_amount",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$"
+            }
+          },
+          {
+            "name": "max_amount",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at_desc",
+                "purchase_date_desc",
+                "total_amount_desc"
+              ],
+              "default": "created_at_desc"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/receipts/{id}": {
+      "get": {
+        "operationId": "getReceipt",
+        "summary": "Get own receipt and latest AI result",
+        "description": "",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "operationId": "reviewReceipt",
+        "summary": "Save corrections or confirm reviewed receipt",
+        "description": "Full replacement of editable data, not JSON Merge Patch. expected_version is mandatory. Revalidate; preserve original AI output and append correction event atomically.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteReceipt",
+        "summary": "Hide receipt and schedule durable cleanup",
+        "description": "Repeat while tombstone exists returns 202; after hard deletion returns 404. Workers must not resurrect deleted receipts.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccepted"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/receipts/{id}/submit": {
+      "post": {
+        "operationId": "submitReceipt",
+        "summary": "Verify uploaded file and enqueue OCR",
+        "description": "Locks receipt, validates actual bytes and file signature, stores SHA-256, inserts one durable database job and outbox event. Repeated submit returns existing job. A server-side dispatcher invokes the configured RunPod worker.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/receipts/{id}/retry": {
+      "post": {
+        "operationId": "retryReceipt",
+        "summary": "Create next processing run after terminal failure",
+        "description": "Only failed receipts. Same key replays the same job; different keys cannot create concurrent active jobs. Reviewed/confirmed receipts cannot be reprocessed in v1.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/receipts/{id}/status": {
+      "get": {
+        "operationId": "getReceiptStatus",
+        "summary": "Poll processing state",
+        "description": "",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/receipts/{id}/file": {
+      "get": {
+        "operationId": "getReceiptFile",
+        "summary": "Create a 300-second private preview URL",
+        "description": "Ownership checked before signing. Cache-Control: no-store. URL may remain valid until expiry after deletion.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileTicket"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/analytics/summary": {
+      "get": {
+        "operationId": "getAnalyticsSummary",
+        "summary": "Aggregate confirmed VND receipts",
+        "description": "Inclusive purchase_date range, <=366 days; zero-fill monthly buckets. Excludes all unconfirmed/deleting receipts and missing totals.",
+        "security": [
+          {
+            "SupabaseBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "See stable error codes in docs/api-contract.md",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "date_from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Liveness only; no secrets or dependency details",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "SupabaseBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Validated Supabase access token. Verify signature, issuer, audience and expiry. Subject determines ownership; never trust a client user_id."
+      }
+    },
+    "schemas": {
+      "CreateReceiptRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "filename": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          },
+          "content_type": {
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "application/pdf"
+            ],
+            "title": "Content Type",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0,
+            "maximum": 5000000,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filename",
+          "content_type",
+          "size_bytes"
+        ],
+        "title": "CreateReceiptRequest",
+        "type": "object"
+      },
+      "ReceiptStatus": {
+        "enum": [
+          "awaiting_upload",
+          "queued",
+          "processing",
+          "needs_review",
+          "confirmed",
+          "failed",
+          "deleting"
+        ],
+        "title": "ReceiptStatus",
+        "type": "string"
+      },
+      "UploadTicket": {
+        "additionalProperties": false,
+        "properties": {
+          "bucket": {
+            "const": "receipts",
+            "title": "Bucket",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "upsert": {
+            "const": false,
+            "title": "Upsert",
+            "type": "boolean"
+          },
+          "max_bytes": {
+            "const": 5000000,
+            "title": "Max Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bucket",
+          "path",
+          "token",
+          "expires_at",
+          "upsert",
+          "max_bytes"
+        ],
+        "title": "UploadTicket",
+        "type": "object"
+      },
+      "CreateReceiptResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "upload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploadTicket"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "version",
+          "upload"
+        ],
+        "title": "CreateReceiptResponse",
+        "type": "object"
+      },
+      "JobStatus": {
+        "enum": [
+          "pending",
+          "running",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
+      "JobSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "run_number": {
+            "minimum": 1,
+            "title": "Run Number",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "attempts": {
+            "maximum": 3,
+            "minimum": 0,
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          }
+        },
+        "required": [
+          "id",
+          "run_number",
+          "status",
+          "attempts",
+          "error_code",
+          "latency_ms"
+        ],
+        "title": "JobSummary",
+        "type": "object"
+      },
+      "AcceptedJob": {
+        "additionalProperties": false,
+        "properties": {
+          "receipt_id": {
+            "format": "uuid",
+            "title": "Receipt Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobSummary"
+          },
+          "poll_after_ms": {
+            "anyOf": [
+              {
+                "maximum": 30000,
+                "minimum": 1000,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poll After Ms"
+          }
+        },
+        "required": [
+          "receipt_id",
+          "status",
+          "job",
+          "poll_after_ms"
+        ],
+        "title": "AcceptedJob",
+        "type": "object"
+      },
+      "ReceiptStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "poll_after_ms": {
+            "anyOf": [
+              {
+                "maximum": 30000,
+                "minimum": 1000,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poll After Ms"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "version",
+          "job",
+          "updated_at",
+          "poll_after_ms"
+        ],
+        "title": "ReceiptStatusResponse",
+        "type": "object"
+      },
+      "BoundingBox": {
+        "additionalProperties": false,
+        "description": "Normalized coordinates in the displayed, orientation-corrected page.",
+        "properties": {
+          "x0": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "X0",
+            "type": "number"
+          },
+          "y0": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Y0",
+            "type": "number"
+          },
+          "x1": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "X1",
+            "type": "number"
+          },
+          "y1": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Y1",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x0",
+          "y0",
+          "x1",
+          "y1"
+        ],
+        "title": "BoundingBox",
+        "type": "object"
+      },
+      "Category": {
+        "enum": [
+          "uncategorized",
+          "food",
+          "shopping",
+          "transport",
+          "utilities",
+          "health",
+          "education",
+          "other"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "DocumentOCR": {
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Engine",
+            "type": "string"
+          },
+          "engine_version": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "languages": {
+            "items": {
+              "enum": [
+                "vi",
+                "en"
+              ],
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Languages",
+            "type": "array"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/OCRPage"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Pages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "engine",
+          "engine_version",
+          "languages",
+          "pages"
+        ],
+        "title": "DocumentOCR",
+        "type": "object"
+      },
+      "ExtractedItem": {
+        "additionalProperties": false,
+        "properties": {
+          "line_number": {
+            "maximum": 500,
+            "minimum": 1,
+            "title": "Line Number",
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "unit_price": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Price"
+          },
+          "line_total": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Line Total"
+          }
+        },
+        "required": [
+          "line_number",
+          "name",
+          "quantity",
+          "unit_price",
+          "line_total"
+        ],
+        "title": "ExtractedItem",
+        "type": "object"
+      },
+      "ExtractionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "receipt_id": {
+            "format": "uuid",
+            "title": "Receipt Id",
+            "type": "string"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "pipeline_version": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Pipeline Version",
+            "type": "string"
+          },
+          "processed_at": {
+            "format": "date-time",
+            "title": "Processed At",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReceiptData"
+          },
+          "ocr": {
+            "$ref": "#/components/schemas/DocumentOCR"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/FieldEvidence"
+            },
+            "maxItems": 2500,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationWarning"
+            },
+            "maxItems": 100,
+            "title": "Warnings",
+            "type": "array"
+          },
+          "timings": {
+            "$ref": "#/components/schemas/Timings"
+          }
+        },
+        "required": [
+          "schema_version",
+          "receipt_id",
+          "job_id",
+          "pipeline_version",
+          "processed_at",
+          "data",
+          "ocr",
+          "evidence",
+          "warnings",
+          "timings"
+        ],
+        "title": "ExtractionResult",
+        "type": "object"
+      },
+      "FieldEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "pattern": "^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$",
+            "title": "Field",
+            "type": "string"
+          },
+          "line_ids": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Line Ids",
+            "type": "array"
+          },
+          "method": {
+            "enum": [
+              "rule",
+              "llm"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "ocr_confidence": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ocr Confidence"
+          }
+        },
+        "required": [
+          "field",
+          "line_ids",
+          "method",
+          "ocr_confidence"
+        ],
+        "title": "FieldEvidence",
+        "type": "object"
+      },
+      "OCRLine": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^p[1-5]-l[1-9][0-9]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/BoundingBox"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "source": {
+            "enum": [
+              "paddleocr",
+              "pdf_text"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "bbox",
+          "confidence",
+          "source"
+        ],
+        "title": "OCRLine",
+        "type": "object"
+      },
+      "OCRPage": {
+        "additionalProperties": false,
+        "properties": {
+          "page_number": {
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Page Number",
+            "type": "integer"
+          },
+          "width": {
+            "exclusiveMinimum": 0,
+            "maximum": 20000,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "exclusiveMinimum": 0,
+            "maximum": 20000,
+            "title": "Height",
+            "type": "integer"
+          },
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/OCRLine"
+            },
+            "maxItems": 5000,
+            "title": "Lines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "page_number",
+          "width",
+          "height",
+          "lines"
+        ],
+        "title": "OCRPage",
+        "type": "object"
+      },
+      "ReceiptData": {
+        "additionalProperties": false,
+        "properties": {
+          "merchant": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant"
+          },
+          "merchant_tax_id": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9]{10}(-[0-9]{3})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant Tax Id"
+          },
+          "invoice_number": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Number"
+          },
+          "purchase_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Date"
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtotal"
+          },
+          "tax_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tax Amount"
+          },
+          "discount_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discount Amount"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "const": "VND",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractedItem"
+            },
+            "maxItems": 500,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "merchant",
+          "merchant_tax_id",
+          "invoice_number",
+          "purchase_date",
+          "subtotal",
+          "tax_amount",
+          "discount_amount",
+          "total_amount",
+          "currency",
+          "items"
+        ],
+        "title": "ReceiptData",
+        "type": "object"
+      },
+      "Timings": {
+        "additionalProperties": false,
+        "properties": {
+          "preprocess_ms": {
+            "minimum": 0,
+            "title": "Preprocess Ms",
+            "type": "integer"
+          },
+          "ocr_ms": {
+            "minimum": 0,
+            "title": "Ocr Ms",
+            "type": "integer"
+          },
+          "extraction_ms": {
+            "minimum": 0,
+            "title": "Extraction Ms",
+            "type": "integer"
+          },
+          "validation_ms": {
+            "minimum": 0,
+            "title": "Validation Ms",
+            "type": "integer"
+          },
+          "total_ms": {
+            "minimum": 0,
+            "title": "Total Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "preprocess_ms",
+          "ocr_ms",
+          "extraction_ms",
+          "validation_ms",
+          "total_ms"
+        ],
+        "title": "Timings",
+        "type": "object"
+      },
+      "ValidationWarning": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/WarningCode"
+          },
+          "severity": {
+            "enum": [
+              "info",
+              "warning",
+              "error"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "pattern": "^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field"
+          },
+          "message": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "field",
+          "message"
+        ],
+        "title": "ValidationWarning",
+        "type": "object"
+      },
+      "WarningCode": {
+        "enum": [
+          "missing_field",
+          "total_mismatch",
+          "item_total_mismatch",
+          "low_ocr_confidence",
+          "unsupported_currency",
+          "ambiguous_value",
+          "empty_document"
+        ],
+        "title": "WarningCode",
+        "type": "string"
+      },
+      "ReceiptDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant"
+          },
+          "purchase_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Date"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "const": "VND",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReceiptData"
+          },
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_extraction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationWarning"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "status",
+          "merchant",
+          "purchase_date",
+          "total_amount",
+          "currency",
+          "category",
+          "version",
+          "created_at",
+          "updated_at",
+          "data",
+          "job",
+          "latest_extraction",
+          "warnings",
+          "confirmed_at"
+        ],
+        "title": "ReceiptDetail",
+        "type": "object"
+      },
+      "ReceiptSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceiptStatus"
+          },
+          "merchant": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Merchant"
+          },
+          "purchase_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purchase Date"
+          },
+          "total_amount": {
+            "anyOf": [
+              {
+                "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "const": "VND",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "filename",
+          "status",
+          "merchant",
+          "purchase_date",
+          "total_amount",
+          "currency",
+          "category",
+          "version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ReceiptSummary",
+        "type": "object"
+      },
+      "ReceiptList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReceiptSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1,
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total_count": {
+            "minimum": 0,
+            "title": "Total Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total_count"
+        ],
+        "title": "ReceiptList",
+        "type": "object"
+      },
+      "ReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "action": {
+            "enum": [
+              "save",
+              "confirm"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReceiptData"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          }
+        },
+        "required": [
+          "expected_version",
+          "action",
+          "data",
+          "category"
+        ],
+        "title": "ReviewRequest",
+        "type": "object"
+      },
+      "FileTicket": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "title": "FileTicket",
+        "type": "object"
+      },
+      "DeleteAccepted": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "const": "deleting",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "DeleteAccepted",
+        "type": "object"
+      },
+      "CategorySpend": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "total_amount": {
+            "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "receipt_count": {
+            "minimum": 0,
+            "title": "Receipt Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category",
+          "total_amount",
+          "receipt_count"
+        ],
+        "title": "CategorySpend",
+        "type": "object"
+      },
+      "MonthlySpend": {
+        "additionalProperties": false,
+        "properties": {
+          "month": {
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "title": "Month",
+            "type": "string"
+          },
+          "total_amount": {
+            "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "receipt_count": {
+            "minimum": 0,
+            "title": "Receipt Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "month",
+          "total_amount",
+          "receipt_count"
+        ],
+        "title": "MonthlySpend",
+        "type": "object"
+      },
+      "AnalyticsSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "date_from": {
+            "format": "date",
+            "title": "Date From",
+            "type": "string"
+          },
+          "date_to": {
+            "format": "date",
+            "title": "Date To",
+            "type": "string"
+          },
+          "currency": {
+            "const": "VND",
+            "title": "Currency",
+            "type": "string"
+          },
+          "included_status": {
+            "const": "confirmed",
+            "title": "Included Status",
+            "type": "string"
+          },
+          "total_amount": {
+            "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+            "title": "Total Amount",
+            "type": "string"
+          },
+          "receipt_count": {
+            "minimum": 0,
+            "title": "Receipt Count",
+            "type": "integer"
+          },
+          "monthly": {
+            "items": {
+              "$ref": "#/components/schemas/MonthlySpend"
+            },
+            "title": "Monthly",
+            "type": "array"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategorySpend"
+            },
+            "title": "Categories",
+            "type": "array"
+          }
+        },
+        "required": [
+          "date_from",
+          "date_to",
+          "currency",
+          "included_status",
+          "total_amount",
+          "receipt_count",
+          "monthly",
+          "categories"
+        ],
+        "title": "AnalyticsSummary",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "details": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Details",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ProcessTask": {
+        "additionalProperties": false,
+        "properties": {
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id"
+        ],
+        "title": "ProcessTask",
+        "type": "object"
+      },
+      "CleanupTask": {
+        "additionalProperties": false,
+        "properties": {
+          "receipt_id": {
+            "format": "uuid",
+            "title": "Receipt Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "receipt_id"
+        ],
+        "title": "CleanupTask",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      }
+    }
+  }
+}

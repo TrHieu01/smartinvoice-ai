@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0.0",
+  "receipt_id": "11111111-1111-4111-8111-111111111111",
+  "job_id": "22222222-2222-4222-8222-222222222222",
+  "pipeline_version": "synthetic-contract-fixture-v1",
+  "processed_at": "2026-10-21T03:00:00Z",
+  "data": {
+    "merchant": "Cửa hàng Mẫu",
+    "merchant_tax_id": null,
+    "invoice_number": "HD-001",
+    "purchase_date": "2026-10-21",
+    "subtotal": "100000.00",
+    "tax_amount": "8000.00",
+    "discount_amount": null,
+    "total_amount": "108000.00",
+    "currency": "VND",
+    "items": []
+  },
+  "ocr": {
+    "engine": "fixture",
+    "engine_version": "1.0.0",
+    "languages": ["vi"],
+    "pages": [{
+      "page_number": 1,
+      "width": 1000,
+      "height": 1400,
+      "lines": [
+        {"id": "p1-l1", "text": "Cửa hàng Mẫu", "bbox": {"x0": 0.1, "y0": 0.05, "x1": 0.7, "y1": 0.1}, "confidence": null, "source": "pdf_text"},
+        {"id": "p1-l2", "text": "Số hóa đơn: HD-001", "bbox": {"x0": 0.1, "y0": 0.15, "x1": 0.7, "y1": 0.2}, "confidence": null, "source": "pdf_text"},
+        {"id": "p1-l3", "text": "Ngày 21 tháng 10 năm 2026", "bbox": {"x0": 0.1, "y0": 0.25, "x1": 0.8, "y1": 0.3}, "confidence": null, "source": "pdf_text"},
+        {"id": "p1-l4", "text": "Cộng tiền hàng: 100.000 VND", "bbox": {"x0": 0.1, "y0": 0.6, "x1": 0.9, "y1": 0.65}, "confidence": null, "source": "pdf_text"},
+        {"id": "p1-l5", "text": "Tiền thuế: 8.000 VND", "bbox": {"x0": 0.1, "y0": 0.7, "x1": 0.9, "y1": 0.75}, "confidence": null, "source": "pdf_text"},
+        {"id": "p1-l6", "text": "Tổng thanh toán: 108.000 VND", "bbox": {"x0": 0.1, "y0": 0.8, "x1": 0.9, "y1": 0.85}, "confidence": null, "source": "pdf_text"}
+      ]
+    }]
+  },
+  "evidence": [
+    {"field": "/merchant", "line_ids": ["p1-l1"], "method": "rule", "ocr_confidence": null},
+    {"field": "/invoice_number", "line_ids": ["p1-l2"], "method": "rule", "ocr_confidence": null},
+    {"field": "/purchase_date", "line_ids": ["p1-l3"], "method": "rule", "ocr_confidence": null},
+    {"field": "/subtotal", "line_ids": ["p1-l4"], "method": "rule", "ocr_confidence": null},
+    {"field": "/tax_amount", "line_ids": ["p1-l5"], "method": "rule", "ocr_confidence": null},
+    {"field": "/total_amount", "line_ids": ["p1-l6"], "method": "rule", "ocr_confidence": null},
+    {"field": "/currency", "line_ids": ["p1-l6"], "method": "rule", "ocr_confidence": null}
+  ],
+  "warnings": [],
+  "timings": {"preprocess_ms": 0, "ocr_ms": 0, "extraction_ms": 0, "validation_ms": 0, "total_ms": 0}
+}

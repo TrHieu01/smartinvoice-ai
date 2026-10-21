@@ -1,0 +1,589 @@
+{
+  "$defs": {
+    "BoundingBox": {
+      "additionalProperties": false,
+      "description": "Normalized coordinates in the displayed, orientation-corrected page.",
+      "properties": {
+        "x0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X0",
+          "type": "number"
+        },
+        "y0": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y0",
+          "type": "number"
+        },
+        "x1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X1",
+          "type": "number"
+        },
+        "y1": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "BoundingBox",
+      "type": "object"
+    },
+    "DocumentOCR": {
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Engine",
+          "type": "string"
+        },
+        "engine_version": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Engine Version",
+          "type": "string"
+        },
+        "languages": {
+          "items": {
+            "enum": [
+              "vi",
+              "en"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Languages",
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/OCRPage"
+          },
+          "maxItems": 5,
+          "minItems": 1,
+          "title": "Pages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "engine",
+        "engine_version",
+        "languages",
+        "pages"
+      ],
+      "title": "DocumentOCR",
+      "type": "object"
+    },
+    "ExtractedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "line_number": {
+          "maximum": 500,
+          "minimum": 1,
+          "title": "Line Number",
+          "type": "integer"
+        },
+        "name": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,8})(\\.[0-9]{1,3})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Quantity"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit Price"
+        },
+        "line_total": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Line Total"
+        }
+      },
+      "required": [
+        "line_number",
+        "name",
+        "quantity",
+        "unit_price",
+        "line_total"
+      ],
+      "title": "ExtractedItem",
+      "type": "object"
+    },
+    "FieldEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "pattern": "^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$",
+          "title": "Field",
+          "type": "string"
+        },
+        "line_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Line Ids",
+          "type": "array"
+        },
+        "method": {
+          "enum": [
+            "rule",
+            "llm"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "ocr_confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ocr Confidence"
+        }
+      },
+      "required": [
+        "field",
+        "line_ids",
+        "method",
+        "ocr_confidence"
+      ],
+      "title": "FieldEvidence",
+      "type": "object"
+    },
+    "OCRLine": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^p[1-5]-l[1-9][0-9]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Confidence"
+        },
+        "source": {
+          "enum": [
+            "paddleocr",
+            "pdf_text"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "bbox",
+        "confidence",
+        "source"
+      ],
+      "title": "OCRLine",
+      "type": "object"
+    },
+    "OCRPage": {
+      "additionalProperties": false,
+      "properties": {
+        "page_number": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Page Number",
+          "type": "integer"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 20000,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 20000,
+          "title": "Height",
+          "type": "integer"
+        },
+        "lines": {
+          "items": {
+            "$ref": "#/$defs/OCRLine"
+          },
+          "maxItems": 5000,
+          "title": "Lines",
+          "type": "array"
+        }
+      },
+      "required": [
+        "page_number",
+        "width",
+        "height",
+        "lines"
+      ],
+      "title": "OCRPage",
+      "type": "object"
+    },
+    "ReceiptData": {
+      "additionalProperties": false,
+      "properties": {
+        "merchant": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Merchant"
+        },
+        "merchant_tax_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{10}(-[0-9]{3})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Merchant Tax Id"
+        },
+        "invoice_number": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Invoice Number"
+        },
+        "purchase_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Purchase Date"
+        },
+        "subtotal": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Subtotal"
+        },
+        "tax_amount": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Tax Amount"
+        },
+        "discount_amount": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Discount Amount"
+        },
+        "total_amount": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,13})(\\.[0-9]{1,2})?$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Total Amount"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "const": "VND",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Currency"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ExtractedItem"
+          },
+          "maxItems": 500,
+          "title": "Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "merchant",
+        "merchant_tax_id",
+        "invoice_number",
+        "purchase_date",
+        "subtotal",
+        "tax_amount",
+        "discount_amount",
+        "total_amount",
+        "currency",
+        "items"
+      ],
+      "title": "ReceiptData",
+      "type": "object"
+    },
+    "Timings": {
+      "additionalProperties": false,
+      "properties": {
+        "preprocess_ms": {
+          "minimum": 0,
+          "title": "Preprocess Ms",
+          "type": "integer"
+        },
+        "ocr_ms": {
+          "minimum": 0,
+          "title": "Ocr Ms",
+          "type": "integer"
+        },
+        "extraction_ms": {
+          "minimum": 0,
+          "title": "Extraction Ms",
+          "type": "integer"
+        },
+        "validation_ms": {
+          "minimum": 0,
+          "title": "Validation Ms",
+          "type": "integer"
+        },
+        "total_ms": {
+          "minimum": 0,
+          "title": "Total Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "preprocess_ms",
+        "ocr_ms",
+        "extraction_ms",
+        "validation_ms",
+        "total_ms"
+      ],
+      "title": "Timings",
+      "type": "object"
+    },
+    "ValidationWarning": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/WarningCode"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "pattern": "^/(merchant|merchant_tax_id|invoice_number|purchase_date|subtotal|tax_amount|discount_amount|total_amount|currency|items/[0-9]+/(name|quantity|unit_price|line_total))$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field"
+        },
+        "message": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "field",
+        "message"
+      ],
+      "title": "ValidationWarning",
+      "type": "object"
+    },
+    "WarningCode": {
+      "enum": [
+        "missing_field",
+        "total_mismatch",
+        "item_total_mismatch",
+        "low_ocr_confidence",
+        "unsupported_currency",
+        "ambiguous_value",
+        "empty_document"
+      ],
+      "title": "WarningCode",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "receipt_id": {
+      "format": "uuid",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "job_id": {
+      "format": "uuid",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "pipeline_version": {
+      "maxLength": 300,
+      "minLength": 1,
+      "title": "Pipeline Version",
+      "type": "string"
+    },
+    "processed_at": {
+      "format": "date-time",
+      "title": "Processed At",
+      "type": "string"
+    },
+    "data": {
+      "$ref": "#/$defs/ReceiptData"
+    },
+    "ocr": {
+      "$ref": "#/$defs/DocumentOCR"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/FieldEvidence"
+      },
+      "maxItems": 2500,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/ValidationWarning"
+      },
+      "maxItems": 100,
+      "title": "Warnings",
+      "type": "array"
+    },
+    "timings": {
+      "$ref": "#/$defs/Timings"
+    }
+  },
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "job_id",
+    "pipeline_version",
+    "processed_at",
+    "data",
+    "ocr",
+    "evidence",
+    "warnings",
+    "timings"
+  ],
+  "title": "ExtractionResult",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:smartinvoice:extraction:1.0.0"
+}

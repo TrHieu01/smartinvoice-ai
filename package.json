@@ -1,0 +1,15 @@
+{
+  "name": "smartinvoice-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contract-first monorepo for SmartInvoice AI",
+  "scripts": {
+    "test:db": "node --test scripts/test-database.mjs",
+    "contracts:generate": "python scripts/export_contracts.py",
+    "contracts:check": "python scripts/export_contracts.py --check"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10",
+    "supabase": "2.121.0"
+  }
+}
