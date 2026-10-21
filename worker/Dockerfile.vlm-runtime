@@ -1,0 +1,11 @@
+# Fast code-only candidate over the immutable, verified 49dc539 GPU image.
+# Dependency changes must use Dockerfile.vlm; the comparisons below enforce this.
+FROM ghcr.io/trhieu01/smartinvoice-ai-worker-vlm@sha256:72fdb85e331744f50b4a246920bc6bd8ba4281b43a7a24adbb86a1b2541820d0
+USER root
+COPY pyproject.toml uv.lock /tmp/dependency-check/
+RUN cmp /app/pyproject.toml /tmp/dependency-check/pyproject.toml && cmp /app/uv.lock /tmp/dependency-check/uv.lock
+COPY backend ./backend
+COPY worker ./worker
+RUN chown -R appuser:appuser /app
+USER appuser
+CMD ["python", "-u", "-m", "worker.handler"]

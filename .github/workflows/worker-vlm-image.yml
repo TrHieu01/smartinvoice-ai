@@ -1,6 +1,11 @@
 name: Build experimental VLM worker image
 on:
   workflow_dispatch:
+    inputs:
+      runtime_only:
+        description: Reuse pinned verified model layers (unchanged dependencies only)
+        type: boolean
+        default: false
 permissions:
   contents: read
   packages: write
@@ -25,7 +30,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: worker/Dockerfile.vlm
+          file: ${{ inputs.runtime_only && 'worker/Dockerfile.vlm-runtime' || 'worker/Dockerfile.vlm' }}
           push: true
           tags: ${{ env.IMAGE }}:${{ github.sha }}
           provenance: true
