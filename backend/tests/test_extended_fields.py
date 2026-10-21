@@ -54,6 +54,18 @@ def test_customer_delivery_address_and_mixed_payments_are_not_guessed():
     assert any(w["field"] == "/payment_method" for w in warnings)
 
 
+def test_unlabelled_street_after_customer_heading_is_not_merchant_address():
+    data, _, _ = checked_extract(
+        document(
+            row(0.02, ("SHOP MẪU", 0.1, 0.9))
+            + row(0.1, ("Người nhận / Địa chỉ giao hàng", 0.1, 0.9))
+            + row(0.13, ("99 Đường Khác", 0.1, 0.9))
+            + row(0.16, ("Địa chỉ: 100 Đường Giao Hàng", 0.1, 0.9))
+        )
+    )
+    assert data.merchant_address is None
+
+
 def test_legacy_data_remains_readable_and_manual_field_limits_are_enforced():
     legacy = dict(
         merchant=None,

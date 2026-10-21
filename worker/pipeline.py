@@ -17,7 +17,7 @@ from backend.app.schemas.contracts import DocumentOCR, ExtractionResult, Receipt
 from backend.app.services.files import inspect_file
 from backend.app.services.validation import validate_receipt
 
-VERSION = "rules-0.4.0"
+VERSION = "rules-0.4.1"
 
 
 def fold(text):
@@ -324,6 +324,7 @@ def extract(ocr):
         }
 
     candidates = {}
+    customer_section = False
     document_rows = rows(ocr)
     labels = [
         ("discount_amount", r"giam gia|chiet khau|discount"),
@@ -336,9 +337,15 @@ def extract(ocr):
     ]
     for row_index, (text, lines) in enumerate(document_rows):
         normalized = fold(text)
+        if re.search(
+            r"giao hang|ship to|khach hang|customer|nguoi nhan|delivery|billing address", normalized
+        ):
+            customer_section = True
+        if re.match(r"^(?:dia chi cua hang|merchant address|store address)\s*:", normalized):
+            customer_section = False
         address = re.match(r"^(?:dia chi(?: cua hang)?|address|dc)\s*:\s*(.+)", normalized)
         street = re.match(r"^\d+[\w/-]*\s+(?:duong|dung|street|road)\b", normalized)
-        if address or (street and row_index < 10):
+        if not customer_section and (address or (street and row_index < 10)):
             value = text.split(":", 1)[1].strip() if address else text.strip()
             address_lines = list(lines)
             if row_index + 1 < len(document_rows):
