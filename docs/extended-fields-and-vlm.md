@@ -78,3 +78,13 @@ Lượt thứ ba chạy fixture đóng sẵn, không có Supabase env/secret. Pr
 RunPod balance UI từ 14,60 xuống 14,55 USD trong phiên, delta khoảng 0,05 USD, thấp hơn mức được duyệt 0,50 USD. Đây là số làm tròn của tài khoản, có độ trễ billing và có thể bao gồm hoạt động CPU khác; không phải chi phí GPU quyết toán riêng chính xác. GPU được đặt active=0/max=0 sau lượt cuối; production vẫn route CPU.
 
 Cơ chế lấy kết quả qua Edge Function tạm đã bị automatic approval review chặn và không được deploy. Không tạo endpoint API mới cho việc đọc benchmark. Kiểm chứng được hoàn thành bằng output đọc từ giao diện và replay offline.
+
+## Artifact cuối phiên
+
+[CI 87c11d1](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39626302843) thành công với 92 pytest, 14 SQL tests, 3 frontend Auth tests và build/check khác. [GPU build 39626330921](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39626330921) thành công, anonymous GHCR manifest HTTP 200. Candidate đã lưu vào endpoint đang tắt:
+
+```text
+ghcr.io/trhieu01/smartinvoice-ai-worker-vlm@sha256:87127650406e07c6ecf15ac5f35ab57afe8015f429c76652783e616568e374a4
+```
+
+Endpoint vẫn active=0/max=0, override worker.benchmark chỉ đọc fixture, không có Supabase env/secret. Image mặc định chứa worker.handler cho tích hợp sau khi có ngân sách vận hành phù hợp; chưa đổi routing production. Không chạy GPU thêm để xác minh image cuối; thay đổi adapter được kiểm chứng bằng replay, unit tests và CI/build. Frontend HTTP 200, API health ok/OpenAPI 1.1.0 có đủ ba trường mới.

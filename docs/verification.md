@@ -2,7 +2,7 @@
 
 ## Đã qua
 
-- Adapter Qwen: 92 pytest local qua, bao gồm replay output GPU ghi nhận với OCR local của cùng fixture, canonical hóa tiền/path, giữ cảnh báo tổng tiền sai và giữ kiểm tra source. Ba lượt GPU tổng hợp đã hoàn tất; GPU dừng, không chuyển production. [Kết quả và giới hạn thử](extended-fields-and-vlm.md).
+- Adapter Qwen: 92 pytest local và [CI 87c11d1](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39626302843) qua, bao gồm replay output GPU ghi nhận với OCR local của cùng fixture, canonical hóa tiền/path, giữ cảnh báo tổng tiền sai và giữ kiểm tra source. Ba lượt GPU tổng hợp đã hoàn tất; GPU dừng, không chuyển production. [Kết quả và giới hạn thử](extended-fields-and-vlm.md).
 
 - [CI 49dc539](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39617070513) thành công: 74 pytest, gồm kiểm chứng chẩn đoán VLM không lộ nội dung nhạy cảm. Lượt GPU đầu fallback, chưa chứng minh cải thiện; [kết quả và giới hạn](extended-fields-and-vlm.md#lượt-thử-gpu-đầu--21102026).
 
