@@ -47,6 +47,8 @@ export function sampleDetail(row: Summary): Detail {
     ],
     data: {
       merchant: row.merchant,
+      merchant_address: "12 Đường Mẫu, TP. Hồ Chí Minh",
+      payment_method: "Tiền mặt",
       purchase_date: row.purchase_date,
       total_amount: row.total_amount,
       currency: "VND",
@@ -55,7 +57,14 @@ export function sampleDetail(row: Summary): Detail {
       subtotal: row.total_amount,
       tax_amount: null,
       discount_amount: null,
-      items: [],
+      items: [{
+        line_number: 1,
+        name: "Sản phẩm minh họa",
+        unit: "phần",
+        quantity: "1",
+        unit_price: row.total_amount,
+        line_total: row.total_amount,
+      }],
     },
   };
 }

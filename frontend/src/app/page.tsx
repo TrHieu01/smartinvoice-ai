@@ -54,6 +54,8 @@ import { authErrorMessage } from "@/lib/auth-errors";
 type View = "dashboard" | "receipts" | "upload";
 const fields: [keyof Omit<Data, "items">, string, string][] = [
   ["merchant", "Cửa hàng", "text"],
+  ["merchant_address", "Địa chỉ cửa hàng", "text"],
+  ["payment_method", "Phương thức thanh toán", "text"],
   ["purchase_date", "Ngày mua", "date"],
   ["invoice_number", "Số hóa đơn", "text"],
   ["merchant_tax_id", "Mã số thuế", "text"],
@@ -1507,7 +1509,7 @@ function Review({
                 <label
                   key={key}
                   className={
-                    key === "merchant" || key === "total_amount"
+                    key === "merchant" || key === "merchant_address" || key === "total_amount"
                       ? "field-wide"
                       : ""
                   }
@@ -1518,6 +1520,7 @@ function Review({
                   ) && <span className="required-mark"> *</span>}
                   <input
                     type={type}
+                    maxLength={key === "merchant_address" ? 500 : key === "payment_method" ? 50 : 300}
                     step={type === "number" ? "0.01" : undefined}
                     min={type === "number" ? "0" : undefined}
                     value={data[key] ?? ""}
@@ -1573,6 +1576,7 @@ function Review({
                       {
                         line_number: data.items.length + 1,
                         name: "",
+                        unit: null,
                         quantity: null,
                         unit_price: null,
                         line_total: null,
@@ -1599,6 +1603,18 @@ function Review({
                       ),
                     })
                   }
+                />
+                <input
+                  aria-label={`Đơn vị tính ${index + 1}`}
+                  placeholder="ĐVT (kg, hộp…)"
+                  maxLength={50}
+                  value={item.unit ?? ""}
+                  onFocus={() => setField(`/items/${index}/unit`)}
+                  onChange={(e) => setData({
+                    ...data,
+                    items: data.items.map((row, i) => i === index
+                      ? { ...row, unit: e.target.value || null } : row),
+                  })}
                 />
                 {(["quantity", "unit_price", "line_total"] as const).map(
                   (key, i) => (

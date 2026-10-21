@@ -1300,7 +1300,7 @@ tbody tr:hover {
 }
 .item-editor {
   display: grid;
-  grid-template-columns: 1.5fr 0.65fr 1fr 1fr 25px;
+  grid-template-columns: minmax(120px, 1.7fr) minmax(70px, 0.9fr) minmax(55px, 0.6fr) minmax(75px, 1fr) minmax(75px, 1fr) 25px;
   gap: 5px;
   margin: 9px 0;
   align-items: center;
@@ -2227,10 +2227,10 @@ tbody tr:hover {
     margin-left: 40px;
   }
   .item-editor {
-    grid-template-columns: 1fr 1fr 1fr 26px;
+    grid-template-columns: 1fr 1fr 1fr 1fr 26px;
   }
   .item-editor > input:first-child {
-    grid-column: 1/5;
+    grid-column: 1/6;
   }
   .source-evidence p {
     font-size: 10px;

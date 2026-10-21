@@ -620,7 +620,7 @@ def run_pipeline(content, mime, receipt_id, job_id):
     def ms(a, b):
         return round((b - a) * 1000)
 
-    return ExtractionResult(
+    result = ExtractionResult(
         schema_version="1.1.0",
         receipt_id=receipt_id,
         job_id=job_id,
@@ -638,3 +638,8 @@ def run_pipeline(content, mime, receipt_id, job_id):
             total_ms=ms(start, finished),
         ),
     )
+    if os.getenv("EXTRACTION_BACKEND", "rules") == "qwen_vl":
+        from worker.vision import enhance
+
+        return enhance(result, content, mime)
+    return result

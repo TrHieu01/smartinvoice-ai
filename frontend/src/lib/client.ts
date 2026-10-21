@@ -69,12 +69,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 export type Item = {
   line_number: number;
   name: string;
+  unit: string | null;
   quantity: string | null;
   unit_price: string | null;
   line_total: string | null;
 };
 export type Data = {
   merchant: string | null;
+  merchant_address: string | null;
+  payment_method: string | null;
   merchant_tax_id: string | null;
   invoice_number: string | null;
   purchase_date: string | null;
