@@ -35,7 +35,7 @@ class VisionPayload(Contract):
     evidence: list[VisionSource] = Field(max_length=2500)
 
 
-def normalize_payload(output):
+def normalize_payload(output, currency_hint=None):
     """Normalize observed wire conventions, retaining strict semantic validation."""
     value = json.loads(output)
     if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
@@ -44,7 +44,7 @@ def normalize_payload(output):
     items = data.get("items", [])
 
     def amount(text):
-        if not isinstance(text, str) or data.get("currency") != "VND":
+        if not isinstance(text, str) or currency_hint != "VND" or data.get("currency") != "VND":
             return text
         # Canonical decimals already fit the contract. Only unambiguous groups
         # of three digits are converted; never round or repair arithmetic.
@@ -210,7 +210,9 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
         if len(output) > 250_000:
             raise ValueError("VLM output limit")
         fenced = re.fullmatch(r"\s*```(?:json)?\s*([\s\S]*?)\s*```\s*", output)
-        payload = VisionPayload.model_validate(normalize_payload(fenced[1] if fenced else output))
+        payload = VisionPayload.model_validate(
+            normalize_payload(fenced[1] if fenced else output, baseline.data.currency)
+        )
         stage = "evidence"
         by_id = {line.id: line for page in baseline.ocr.pages for line in page.lines}
         evidence = []

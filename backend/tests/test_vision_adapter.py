@@ -177,9 +177,19 @@ def test_vnd_grouping_normalization_never_changes_canonical_decimals(baseline, p
             "line_total": None,
         }
     ]
-    parsed = VisionPayload.model_validate(normalize_payload(json.dumps(response)))
+    parsed = VisionPayload.model_validate(normalize_payload(json.dumps(response), "VND"))
     assert parsed.data.total_amount == expected
     assert parsed.data.items[0].quantity == "0.508"
+
+
+def test_currency_grouping_requires_independent_baseline_context(baseline):
+    response = payload(baseline)
+    response["data"]["total_amount"] = "99.000"
+    # A model claim alone must not turn an ambiguous amount into VND thousands.
+    assert normalize_payload(json.dumps(response), None)["data"]["total_amount"] == "99.000"
+    baseline.data.currency = None
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+vlm-fallback")
 
 
 @pytest.mark.parametrize("invalid", ["0.123", "1.23.456", "-99.000", "NaN"])
