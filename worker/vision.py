@@ -35,6 +35,68 @@ class VisionPayload(Contract):
     evidence: list[VisionSource] = Field(max_length=2500)
 
 
+def normalize_payload(output):
+    """Normalize observed wire conventions, retaining strict semantic validation."""
+    value = json.loads(output)
+    if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
+        return value
+    data = value["data"]
+    items = data.get("items", [])
+
+    def amount(text):
+        if not isinstance(text, str) or data.get("currency") != "VND":
+            return text
+        # Canonical decimals already fit the contract. Only unambiguous groups
+        # of three digits are converted; never round or repair arithmetic.
+        for grouping, decimal in ((".", ","), (",", ".")):
+            if re.fullmatch(
+                rf"[1-9][0-9]{{0,2}}(?:{re.escape(grouping)}[0-9]{{3}})+"
+                rf"(?:{re.escape(decimal)}[0-9]{{1,2}})?",
+                text,
+            ):
+                return text.replace(grouping, "").replace(decimal, ".")
+        return text
+
+    for key in ("subtotal", "tax_amount", "discount_amount", "total_amount"):
+        if key in data:
+            data[key] = amount(data[key])
+    if isinstance(items, list):
+        for item in items:
+            if isinstance(item, dict):
+                for key in ("unit_price", "line_total"):
+                    if key in item:
+                        item[key] = amount(item[key])
+    sources = value.get("evidence")
+    if isinstance(sources, list):
+        retained = []
+        for source in sources:
+            if not isinstance(source, dict) or not isinstance(source.get("field"), str):
+                retained.append(source)
+                continue
+            path = source["field"]
+            if path.startswith("/data/"):
+                path = path[5:]
+                source["field"] = path
+            cursor = data
+            found = path.startswith("/")
+            for part in path[1:].split("/"):
+                if isinstance(cursor, dict) and part in cursor:
+                    cursor = cursor[part]
+                elif isinstance(cursor, list) and part.isdigit() and int(part) < len(cursor):
+                    cursor = cursor[int(part)]
+                else:
+                    found = False
+                    break
+            # Null values and derived line ordinals carry no asserted value
+            # requiring evidence. Missing/invalid evidence for real values is
+            # still rejected, as are unknown paths and duplicate citations.
+            ordinal = re.fullmatch(r"/items/[0-9]+/line_number", path)
+            if not found or (cursor is not None and not ordinal):
+                retained.append(source)
+        value["evidence"] = retained
+    return value
+
+
 def prompt_for(result):
     # Keep the beginning and end so the merchant and totals remain represented.
     lines = [
@@ -55,8 +117,11 @@ def prompt_for(result):
         "sale unit, price, or currency. Keep a free item's printed zero price. "
         "Separate product pack size from sale unit. Money/quantity must be unsigned "
         "decimal STRINGS, dates YYYY-MM-DD. Only VND is supported; other currencies null. "
+        'Write 99.000 VND as "99000.00", without thousands separators. '
         "For EVERY non-null field except line_number, cite evidence with its JSON "
         "pointer and original OCR line_ids covering that value's image region. "
+        'Use paths like "/merchant" or "/items/0/unit", without a /data prefix. '
+        "Do not cite null fields or line_number. "
         "If no suitable OCR region is available, leave that field null. "
         "Address must be merchant address, not customer/delivery address. "
         "Never repair arithmetic to make totals match.\nSCHEMA:\n"
@@ -145,7 +210,7 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
         if len(output) > 250_000:
             raise ValueError("VLM output limit")
         fenced = re.fullmatch(r"\s*```(?:json)?\s*([\s\S]*?)\s*```\s*", output)
-        payload = VisionPayload.model_validate_json(fenced[1] if fenced else output)
+        payload = VisionPayload.model_validate(normalize_payload(fenced[1] if fenced else output))
         stage = "evidence"
         by_id = {line.id: line for page in baseline.ocr.pages for line in page.lines}
         evidence = []

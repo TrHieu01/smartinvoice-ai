@@ -2,6 +2,10 @@
 
 ## Đã qua
 
+- Adapter Qwen: 91 pytest local qua, bao gồm replay output GPU ghi nhận với OCR local của cùng fixture, canonical hóa tiền/path, giữ cảnh báo tổng tiền sai và giữ kiểm tra source. Ba lượt GPU tổng hợp đã hoàn tất; GPU dừng, không chuyển production. [Kết quả và giới hạn thử](extended-fields-and-vlm.md).
+
+- [CI 49dc539](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39617070513) thành công: 74 pytest, gồm kiểm chứng chẩn đoán VLM không lộ nội dung nhạy cảm. Lượt GPU đầu fallback, chưa chứng minh cải thiện; [kết quả và giới hạn](extended-fields-and-vlm.md#lượt-thử-gpu-đầu--21102026).
+
 - Bản CPU hiện tại `rules-0.4.1`: [CI 6d8c55a](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39589102189) qua 72 pytest, 14 SQL tests, 3 frontend Auth tests và các kiểm tra build. Bổ sung regression không lấy địa chỉ người nhận làm địa chỉ cửa hàng. [CPU image build](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39589255590) thành công; endpoint Ready với digest `sha256:b157613e1b4f86568f0cba5904c5078cdd0acfbce8f5fab3e2f28d25d526c3bc`, active=0/max=1/idle=5s.
 - [GPU image build 75ab41d](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/39588380711) thành công, GHCR public manifest HTTP 200. Processor đã nhận ảnh giả lập trong build; chưa chạy model inference trên GPU. Xem [image và kế hoạch thử](extended-fields-and-vlm.md).
 

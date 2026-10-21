@@ -1,0 +1,530 @@
+{
+  "schema_version": "1.1.0",
+  "receipt_id": "f87d9c33-80bb-4191-8719-0a857016aea9",
+  "job_id": "b6211cc2-c42c-411c-ab69-c293b56cc224",
+  "pipeline_version": "rules-0.4.1",
+  "processed_at": "2026-10-21T15:24:26.215999Z",
+  "data": {
+    "merchant": "CUA HANG MINH HOA - DU LIEU THU",
+    "merchant_address": null,
+    "payment_method": null,
+    "merchant_tax_id": null,
+    "invoice_number": "TEST-VLM-001",
+    "purchase_date": "2026-10-21",
+    "subtotal": "90000.00",
+    "tax_amount": null,
+    "discount_amount": "0.00",
+    "total_amount": "99000.00",
+    "currency": "VND",
+    "items": [
+      {
+        "line_number": 1,
+        "name": "Sa tưoi",
+        "unit": "hp",
+        "quantity": "2",
+        "unit_price": "25000.00",
+        "line_total": "50000.00"
+      },
+      {
+        "line_number": 2,
+        "name": "Táo đ",
+        "unit": "kg",
+        "quantity": "1",
+        "unit_price": "40000.00",
+        "line_total": "40000.00"
+      }
+    ]
+  },
+  "ocr": {
+    "engine": "PyMuPDF+PaddleOCR",
+    "engine_version": "1.26.7/3",
+    "languages": [
+      "vi",
+      "en"
+    ],
+    "pages": [
+      {
+        "page_number": 1,
+        "width": 1200,
+        "height": 1400,
+        "lines": [
+          {
+            "id": "p1-l1",
+            "text": "CUA HANG MINH HOA - DU LIEU THU",
+            "bbox": {
+              "x0": 0.03166666666666667,
+              "y0": 0.03214285714285714,
+              "x1": 0.5375,
+              "y1": 0.05857142857142857
+            },
+            "confidence": 0.9816628694534302,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l2",
+            "text": "Đa ch: 123 đưng Minh Ha, Qun 1",
+            "bbox": {
+              "x0": 0.028333333333333332,
+              "y0": 0.09785714285714285,
+              "x1": 0.5133333333333333,
+              "y1": 0.12857142857142856
+            },
+            "confidence": 0.9729812145233154,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l3",
+            "text": "HÓA ĐON BÁN HÀNG",
+            "bbox": {
+              "x0": 0.028333333333333332,
+              "y0": 0.16071428571428573,
+              "x1": 0.3283333333333333,
+              "y1": 0.19642857142857142
+            },
+            "confidence": 0.9880367517471313,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l4",
+            "text": "Só hóa đon: TEST-VLM-001",
+            "bbox": {
+              "x0": 0.03166666666666667,
+              "y0": 0.23285714285714285,
+              "x1": 0.39416666666666667,
+              "y1": 0.2621428571428571
+            },
+            "confidence": 0.985257089138031,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l5",
+            "text": "Ngày: 21/10/2026",
+            "bbox": {
+              "x0": 0.0275,
+              "y0": 0.29928571428571427,
+              "x1": 0.26,
+              "y1": 0.33285714285714285
+            },
+            "confidence": 0.9994856715202332,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l6",
+            "text": "Tên hàng",
+            "bbox": {
+              "x0": 0.02666666666666667,
+              "y0": 0.3657142857142857,
+              "x1": 0.15916666666666668,
+              "y1": 0.4035714285714286
+            },
+            "confidence": 0.931400716304779,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l7",
+            "text": "ĐVT SL Đon giá",
+            "bbox": {
+              "x0": 0.2175,
+              "y0": 0.3628571428571429,
+              "x1": 0.5216666666666666,
+              "y1": 0.4035714285714286
+            },
+            "confidence": 0.8705807328224182,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l8",
+            "text": "Thành tin",
+            "bbox": {
+              "x0": 0.55,
+              "y0": 0.365,
+              "x1": 0.6941666666666667,
+              "y1": 0.3992857142857143
+            },
+            "confidence": 0.996277928352356,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l9",
+            "text": "Sa tưoi",
+            "bbox": {
+              "x0": 0.03,
+              "y0": 0.43714285714285717,
+              "x1": 0.1525,
+              "y1": 0.46714285714285714
+            },
+            "confidence": 0.9044263958930969,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l10",
+            "text": "hp",
+            "bbox": {
+              "x0": 0.21916666666666668,
+              "y0": 0.43357142857142855,
+              "x1": 0.28583333333333333,
+              "y1": 0.47285714285714286
+            },
+            "confidence": 0.9975518584251404,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l11",
+            "text": "2",
+            "bbox": {
+              "x0": 0.31,
+              "y0": 0.43714285714285717,
+              "x1": 0.3516666666666667,
+              "y1": 0.46785714285714286
+            },
+            "confidence": 0.9998544454574585,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l12",
+            "text": "25.000",
+            "bbox": {
+              "x0": 0.39666666666666667,
+              "y0": 0.43357142857142855,
+              "x1": 0.4975,
+              "y1": 0.4692857142857143
+            },
+            "confidence": 0.9999682903289795,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l13",
+            "text": "50.000",
+            "bbox": {
+              "x0": 0.5466666666666666,
+              "y0": 0.43642857142857144,
+              "x1": 0.6425,
+              "y1": 0.46714285714285714
+            },
+            "confidence": 0.9999763369560242,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l14",
+            "text": "Táo đ",
+            "bbox": {
+              "x0": 0.029166666666666667,
+              "y0": 0.5035714285714286,
+              "x1": 0.12666666666666668,
+              "y1": 0.535
+            },
+            "confidence": 0.9981582760810852,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l15",
+            "text": "kg",
+            "bbox": {
+              "x0": 0.21416666666666667,
+              "y0": 0.5014285714285714,
+              "x1": 0.2675,
+              "y1": 0.5435714285714286
+            },
+            "confidence": 0.9998476505279541,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l16",
+            "text": "1",
+            "bbox": {
+              "x0": 0.3175,
+              "y0": 0.5057142857142857,
+              "x1": 0.3475,
+              "y1": 0.5335714285714286
+            },
+            "confidence": 0.999278724193573,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l17",
+            "text": "40.000",
+            "bbox": {
+              "x0": 0.39416666666666667,
+              "y0": 0.5035714285714286,
+              "x1": 0.49166666666666664,
+              "y1": 0.535
+            },
+            "confidence": 0.9999824166297913,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l18",
+            "text": "40.000",
+            "bbox": {
+              "x0": 0.54,
+              "y0": 0.5035714285714286,
+              "x1": 0.6383333333333333,
+              "y1": 0.535
+            },
+            "confidence": 0.9999635219573975,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l19",
+            "text": "Tièn hàng: 90.000",
+            "bbox": {
+              "x0": 0.03,
+              "y0": 0.5692857142857143,
+              "x1": 0.265,
+              "y1": 0.6057142857142858
+            },
+            "confidence": 0.9365846514701843,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l20",
+            "text": "Thu: 9.000",
+            "bbox": {
+              "x0": 0.029166666666666667,
+              "y0": 0.6385714285714286,
+              "x1": 0.1875,
+              "y1": 0.6707142857142857
+            },
+            "confidence": 0.9973565340042114,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l21",
+            "text": "Gim giá: 0",
+            "bbox": {
+              "x0": 0.03,
+              "y0": 0.7071428571428572,
+              "x1": 0.1825,
+              "y1": 0.7421428571428571
+            },
+            "confidence": 0.9952901005744934,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l22",
+            "text": "Tng thanh toán: 99.000 VND",
+            "bbox": {
+              "x0": 0.030833333333333334,
+              "y0": 0.775,
+              "x1": 0.4116666666666667,
+              "y1": 0.8085714285714286
+            },
+            "confidence": 0.9985281229019165,
+            "source": "paddleocr"
+          },
+          {
+            "id": "p1-l23",
+            "text": "Thanh toán: Tin mt",
+            "bbox": {
+              "x0": 0.03166666666666667,
+              "y0": 0.8428571428571429,
+              "x1": 0.30583333333333335,
+              "y1": 0.8742857142857143
+            },
+            "confidence": 0.9893642067909241,
+            "source": "paddleocr"
+          }
+        ]
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "field": "/invoice_number",
+      "line_ids": [
+        "p1-l4"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.985257089138031
+    },
+    {
+      "field": "/purchase_date",
+      "line_ids": [
+        "p1-l5"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9994856715202332
+    },
+    {
+      "field": "/currency",
+      "line_ids": [
+        "p1-l22"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9985281229019165
+    },
+    {
+      "field": "/items/0/name",
+      "line_ids": [
+        "p1-l9",
+        "p1-l10",
+        "p1-l11",
+        "p1-l12",
+        "p1-l13"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9044263958930969
+    },
+    {
+      "field": "/items/0/unit",
+      "line_ids": [
+        "p1-l9",
+        "p1-l10",
+        "p1-l11",
+        "p1-l12",
+        "p1-l13"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9044263958930969
+    },
+    {
+      "field": "/items/0/quantity",
+      "line_ids": [
+        "p1-l9",
+        "p1-l10",
+        "p1-l11",
+        "p1-l12",
+        "p1-l13"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9044263958930969
+    },
+    {
+      "field": "/items/0/unit_price",
+      "line_ids": [
+        "p1-l9",
+        "p1-l10",
+        "p1-l11",
+        "p1-l12",
+        "p1-l13"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9044263958930969
+    },
+    {
+      "field": "/items/0/line_total",
+      "line_ids": [
+        "p1-l9",
+        "p1-l10",
+        "p1-l11",
+        "p1-l12",
+        "p1-l13"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9044263958930969
+    },
+    {
+      "field": "/items/1/name",
+      "line_ids": [
+        "p1-l14",
+        "p1-l15",
+        "p1-l16",
+        "p1-l17",
+        "p1-l18"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9981582760810852
+    },
+    {
+      "field": "/items/1/unit",
+      "line_ids": [
+        "p1-l14",
+        "p1-l15",
+        "p1-l16",
+        "p1-l17",
+        "p1-l18"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9981582760810852
+    },
+    {
+      "field": "/items/1/quantity",
+      "line_ids": [
+        "p1-l14",
+        "p1-l15",
+        "p1-l16",
+        "p1-l17",
+        "p1-l18"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9981582760810852
+    },
+    {
+      "field": "/items/1/unit_price",
+      "line_ids": [
+        "p1-l14",
+        "p1-l15",
+        "p1-l16",
+        "p1-l17",
+        "p1-l18"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9981582760810852
+    },
+    {
+      "field": "/items/1/line_total",
+      "line_ids": [
+        "p1-l14",
+        "p1-l15",
+        "p1-l16",
+        "p1-l17",
+        "p1-l18"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9981582760810852
+    },
+    {
+      "field": "/subtotal",
+      "line_ids": [
+        "p1-l19"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9365846514701843
+    },
+    {
+      "field": "/discount_amount",
+      "line_ids": [
+        "p1-l21"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9952901005744934
+    },
+    {
+      "field": "/total_amount",
+      "line_ids": [
+        "p1-l22"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9985281229019165
+    },
+    {
+      "field": "/merchant",
+      "line_ids": [
+        "p1-l1"
+      ],
+      "method": "rule",
+      "ocr_confidence": 0.9816628694534302
+    }
+  ],
+  "warnings": [
+    {
+      "code": "ambiguous_value",
+      "severity": "warning",
+      "field": null,
+      "message": "Có nhãn bị OCR đọc thiếu ký tự; cần đối chiếu số tiền với bản gốc."
+    },
+    {
+      "code": "ambiguous_value",
+      "severity": "warning",
+      "field": null,
+      "message": "Có nhãn bị OCR đọc thiếu ký tự; cần đối chiếu số tiền với bản gốc."
+    }
+  ],
+  "timings": {
+    "preprocess_ms": 11,
+    "ocr_ms": 18458,
+    "extraction_ms": 4,
+    "validation_ms": 0,
+    "total_ms": 18473
+  }
+}

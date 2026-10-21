@@ -6,7 +6,7 @@ import pytest
 from PIL import Image
 
 from backend.app.schemas.contracts import ExtractionResult, ValidationWarning
-from worker.vision import enhance
+from worker.vision import VisionPayload, enhance, normalize_payload
 from worker.handler import log_diagnostics
 
 
@@ -119,6 +119,91 @@ def test_benchmark_returns_only_fixed_synthetic_model_output(baseline, monkeypat
     import os
 
     assert os.environ["EXTRACTION_BACKEND"] == "qwen_vl"
+
+
+def test_recorded_gpu_output_replays_against_same_fixture_local_ocr():
+    examples = Path(__file__).parents[2] / "contracts/examples"
+    # Real recorded GPU text; OCR is a local replay of the identical bundled PNG
+    # and the same Paddle models, not a new GPU run or an accuracy benchmark.
+    baseline = ExtractionResult.model_validate_json(
+        (examples / "vlm.synthetic.baseline.json").read_text(encoding="utf-8")
+    )
+    raw = (examples / "vlm.synthetic.raw.json").read_text(encoding="utf-8")
+    content = (Path(__file__).parents[2] / "worker/fixtures/synthetic-receipt.png").read_bytes()
+    result = enhance(baseline, content, "image/png", lambda *_: raw)
+    assert result.pipeline_version.endswith("+qwen3vl4b")
+    assert [i.name for i in result.data.items] == ["Sữa tươi", "Táo đỏ"]
+    assert [i.unit for i in result.data.items] == ["hộp", "kg"]
+    assert result.data.total_amount == "99000"
+    assert result.data.tax_amount == "9000"
+    assert result.data.payment_method == "Tiền mặt"
+    assert result.data.merchant_address == "123 đường Minh Hoa, Quận 1"
+    assert not any(w.code in {"total_mismatch", "item_total_mismatch"} for w in result.warnings)
+
+
+def test_normalization_preserves_arithmetic_disagreement():
+    examples = Path(__file__).parents[2] / "contracts/examples"
+    baseline = ExtractionResult.model_validate_json(
+        (examples / "vlm.synthetic.baseline.json").read_text(encoding="utf-8")
+    )
+    response = json.loads((examples / "vlm.synthetic.raw.json").read_text(encoding="utf-8"))
+    response["data"]["total_amount"] = "98.000"
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+qwen3vl4b")
+    assert result.data.total_amount == "98000"
+    assert any(w.code == "total_mismatch" for w in result.warnings)
+
+
+@pytest.mark.parametrize(
+    "printed,expected",
+    [
+        ("99.000", "99000"),
+        ("99,000", "99000"),
+        ("1.234,50", "1234.50"),
+        ("1,234.50", "1234.50"),
+        ("1234.50", "1234.50"),
+        ("0.50", "0.50"),
+    ],
+)
+def test_vnd_grouping_normalization_never_changes_canonical_decimals(baseline, printed, expected):
+    response = payload(baseline)
+    response["data"]["total_amount"] = printed
+    response["data"]["items"] = [
+        {
+            "line_number": 1,
+            "name": "Synthetic",
+            "quantity": "0.508",
+            "unit_price": None,
+            "line_total": None,
+        }
+    ]
+    parsed = VisionPayload.model_validate(normalize_payload(json.dumps(response)))
+    assert parsed.data.total_amount == expected
+    assert parsed.data.items[0].quantity == "0.508"
+
+
+@pytest.mark.parametrize("invalid", ["0.123", "1.23.456", "-99.000", "NaN"])
+def test_normalization_does_not_guess_invalid_money(baseline, invalid):
+    response = payload(baseline)
+    response["data"]["total_amount"] = invalid
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+vlm-fallback")
+
+
+@pytest.mark.parametrize("invalid", ["duplicate", "unknown-null", "empty-nonnull"])
+def test_normalized_paths_still_require_valid_unique_sources(baseline, invalid):
+    response = payload(baseline)
+    first = response["evidence"][0]
+    if invalid == "duplicate":
+        response["evidence"].append(
+            {"field": "/data" + first["field"], "line_ids": first["line_ids"]}
+        )
+    elif invalid == "unknown-null":
+        response["evidence"].append({"field": "/data/not_a_field", "line_ids": []})
+    else:
+        first["line_ids"] = []
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+vlm-fallback")
 
 
 def test_vision_may_not_invent_missing_year_or_supported_currency(baseline):

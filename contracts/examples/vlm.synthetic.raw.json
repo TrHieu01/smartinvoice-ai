@@ -1,0 +1,171 @@
+{
+  "data": {
+    "merchant": "CUA HANG MINH HOA - DU LIEU THU",
+    "merchant_address": "123 đường Minh Hoa, Quận 1",
+    "payment_method": "Tiền mặt",
+    "merchant_tax_id": null,
+    "invoice_number": "TEST-VLM-001",
+    "purchase_date": "2026-10-21",
+    "subtotal": "90.000",
+    "tax_amount": "9.000",
+    "discount_amount": "0",
+    "total_amount": "99.000",
+    "currency": "VND",
+    "items": [
+      {
+        "line_number": 1,
+        "name": "Sữa tươi",
+        "unit": "hộp",
+        "quantity": "2",
+        "unit_price": "25.000",
+        "line_total": "50.000"
+      },
+      {
+        "line_number": 2,
+        "name": "Táo đỏ",
+        "unit": "kg",
+        "quantity": "1",
+        "unit_price": "40.000",
+        "line_total": "40.000"
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "field": "/data/merchant",
+      "line_ids": [
+        "p1-l1"
+      ]
+    },
+    {
+      "field": "/data/merchant_address",
+      "line_ids": [
+        "p1-l2"
+      ]
+    },
+    {
+      "field": "/data/payment_method",
+      "line_ids": [
+        "p1-l23"
+      ]
+    },
+    {
+      "field": "/data/merchant_tax_id",
+      "line_ids": []
+    },
+    {
+      "field": "/data/invoice_number",
+      "line_ids": [
+        "p1-l4"
+      ]
+    },
+    {
+      "field": "/data/purchase_date",
+      "line_ids": [
+        "p1-l5"
+      ]
+    },
+    {
+      "field": "/data/subtotal",
+      "line_ids": [
+        "p1-l19"
+      ]
+    },
+    {
+      "field": "/data/tax_amount",
+      "line_ids": [
+        "p1-l20"
+      ]
+    },
+    {
+      "field": "/data/discount_amount",
+      "line_ids": [
+        "p1-l21"
+      ]
+    },
+    {
+      "field": "/data/total_amount",
+      "line_ids": [
+        "p1-l22"
+      ]
+    },
+    {
+      "field": "/data/currency",
+      "line_ids": [
+        "p1-l22"
+      ]
+    },
+    {
+      "field": "/data/items/0/line_number",
+      "line_ids": [
+        "p1-l9"
+      ]
+    },
+    {
+      "field": "/data/items/0/name",
+      "line_ids": [
+        "p1-l9"
+      ]
+    },
+    {
+      "field": "/data/items/0/unit",
+      "line_ids": [
+        "p1-l10"
+      ]
+    },
+    {
+      "field": "/data/items/0/quantity",
+      "line_ids": [
+        "p1-l11"
+      ]
+    },
+    {
+      "field": "/data/items/0/unit_price",
+      "line_ids": [
+        "p1-l12"
+      ]
+    },
+    {
+      "field": "/data/items/0/line_total",
+      "line_ids": [
+        "p1-l13"
+      ]
+    },
+    {
+      "field": "/data/items/1/line_number",
+      "line_ids": [
+        "p1-l14"
+      ]
+    },
+    {
+      "field": "/data/items/1/name",
+      "line_ids": [
+        "p1-l14"
+      ]
+    },
+    {
+      "field": "/data/items/1/unit",
+      "line_ids": [
+        "p1-l15"
+      ]
+    },
+    {
+      "field": "/data/items/1/quantity",
+      "line_ids": [
+        "p1-l16"
+      ]
+    },
+    {
+      "field": "/data/items/1/unit_price",
+      "line_ids": [
+        "p1-l17"
+      ]
+    },
+    {
+      "field": "/data/items/1/line_total",
+      "line_ids": [
+        "p1-l18"
+      ]
+    }
+  ]
+}
