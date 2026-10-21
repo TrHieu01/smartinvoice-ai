@@ -177,6 +177,7 @@ export default function Home() {
       !["queued", "processing"].includes(selected.status)
     )
       return;
+    const receipt = selected;
     let stopped = false;
     let delay = 2000;
     const deadline = Date.now() + 15 * 60_000;
@@ -184,10 +185,10 @@ export default function Home() {
     async function poll() {
       try {
         const result = await api<{ status: string }>(
-          `/receipts/${selected.id}/status`,
+          `/receipts/${receipt.id}/status`,
         );
-        if (!stopped && result.status !== selected.status) {
-          const detail = await api<Detail>(`/receipts/${selected.id}`);
+        if (!stopped && result.status !== receipt.status) {
+          const detail = await api<Detail>(`/receipts/${receipt.id}`);
           if (!stopped) {
             setSelected(detail);
             void refresh();
