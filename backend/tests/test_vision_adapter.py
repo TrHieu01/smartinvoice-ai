@@ -93,6 +93,34 @@ def test_child_log_forwarding_rejects_arbitrary_details(caplog):
     assert not caplog.records
 
 
+def test_benchmark_rejects_user_documents():
+    from worker.benchmark import benchmark
+
+    for request in (
+        {"content": "PRIVATE"},
+        {"job_id": "PRIVATE"},
+        {"fixture": "synthetic-receipt-v1", "url": "PRIVATE"},
+    ):
+        with pytest.raises(ValueError, match="Only the bundled synthetic fixture"):
+            benchmark(request)
+
+
+def test_benchmark_returns_only_fixed_synthetic_model_output(baseline, monkeypatch):
+    from worker import benchmark as module
+
+    original = json.dumps(payload(baseline))
+    monkeypatch.setattr(module, "run_pipeline", lambda *_: baseline)
+    monkeypatch.setattr(module.vision, "generate", lambda *_: original)
+    monkeypatch.setenv("EXTRACTION_BACKEND", "qwen_vl")
+    result = module.benchmark({"fixture": "synthetic-receipt-v1"})
+    assert result["synthetic_model_output"] == original
+    assert result["candidate"]["pipeline_version"].endswith("+qwen3vl4b")
+    assert result["fixture_sha256"] == module.FIXTURE_HASH
+    import os
+
+    assert os.environ["EXTRACTION_BACKEND"] == "qwen_vl"
+
+
 def test_vision_may_not_invent_missing_year_or_supported_currency(baseline):
     baseline.data.purchase_date = None
     baseline.data.currency = None
