@@ -82,6 +82,28 @@ def test_generation_failure_does_not_expose_provider_output(baseline, capsys, ca
     assert "PRIVATE" not in caplog.text
 
 
+def test_empty_scalar_citation_can_reuse_identical_verified_baseline(baseline):
+    response = payload(baseline)
+    for source in response["evidence"]:
+        if source["field"] == "/total_amount":
+            source["line_ids"] = []
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+qwen3vl4b")
+    total = next(e for e in result.evidence if e.field == "/total_amount")
+    original = next(e for e in baseline.evidence if e.field == "/total_amount")
+    assert total.method == "rule" and total.line_ids == original.line_ids
+
+
+def test_empty_citation_cannot_borrow_sources_for_changed_value(baseline):
+    response = payload(baseline)
+    response["data"]["total_amount"] = "1.00"
+    for source in response["evidence"]:
+        if source["field"] == "/total_amount":
+            source["line_ids"] = []
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+vlm-fallback")
+
+
 def test_missing_wrapper_has_safe_diagnostics(baseline, capsys):
     result = enhance(baseline, image(), "image/png", lambda *_: json.dumps({"PRIVATE": 1}))
     assert result.pipeline_version.endswith("+vlm-fallback")

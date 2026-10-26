@@ -145,7 +145,7 @@ def prompt_for(result):
         "For EVERY non-null field except line_number, cite evidence with its JSON "
         "pointer and original OCR line_ids covering that value's image region. "
         'Use paths like "/merchant" or "/items/0/unit", without a /data prefix. '
-        "Do not cite null fields or line_number. "
+        "Do not cite null fields or line_number. Never emit empty line_ids. "
         "Use an empty items array when no products are printed. Cite leaf fields, not arrays. "
         "If no suitable OCR region is available, leave that field null. "
         "Address must be merchant address, not customer/delivery address. "
@@ -155,6 +155,44 @@ def prompt_for(result):
         + json.dumps(lines, ensure_ascii=False)
     )
     return prompt, {line["id"] for line in lines}
+
+
+def restore_baseline_sources(value, baseline):
+    """Reuse verified scalar sources only for an identical baseline value.
+
+    An empty model citation is not evidence. The rules result can independently
+    corroborate the same scalar; never transfer item sources by row position.
+    Unknown, conflicting, missing or nonempty model citations remain strict.
+    """
+    restored = set()
+    if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
+        return value, restored
+    data = value["data"]
+    original = baseline.data.model_dump(mode="json")
+    sources = {source.field: source.line_ids for source in baseline.evidence}
+    evidence = value.get("evidence")
+    if not isinstance(evidence, list):
+        return value, restored
+    for source in evidence:
+        if not isinstance(source, dict) or source.get("line_ids") != []:
+            continue
+        field = source.get("field")
+        if not isinstance(field, str) or field not in sources:
+            continue
+        key = field.removeprefix("/")
+        if key == "items" or key not in original or data.get(key) is None:
+            continue
+        actual, expected = data[key], original[key]
+        equal = actual == expected
+        if key in {"subtotal", "tax_amount", "discount_amount", "total_amount"}:
+            pattern = r"^(0|[1-9][0-9]{0,13})(\.[0-9]{1,2})?$"
+            if isinstance(actual, str) and isinstance(expected, str):
+                if re.fullmatch(pattern, actual) and re.fullmatch(pattern, expected):
+                    equal = Decimal(actual) == Decimal(expected)
+        if equal:
+            source["line_ids"] = list(sources[field])
+            restored.add(field)
+    return value, restored
 
 
 def receipt_images(content, mime):
@@ -235,9 +273,10 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
         if len(output) > 250_000:
             raise ValueError("VLM output limit")
         fenced = re.fullmatch(r"\s*```(?:json)?\s*([\s\S]*?)\s*```\s*", output)
-        payload = VisionPayload.model_validate(
-            normalize_payload(fenced[1] if fenced else output, baseline.data.currency)
+        normalized, restored = restore_baseline_sources(
+            normalize_payload(fenced[1] if fenced else output, baseline.data.currency), baseline
         )
+        payload = VisionPayload.model_validate(normalized)
         stage = "evidence"
         by_id = {line.id: line for page in baseline.ocr.pages for line in page.lines}
         evidence = []
@@ -253,7 +292,7 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
                 dict(
                     field=source.field,
                     line_ids=source.line_ids,
-                    method="llm",
+                    method="rule" if source.field in restored else "llm",
                     ocr_confidence=min(scores) if scores else None,
                 )
             )

@@ -62,7 +62,14 @@ def fixture_image():
     return output.getvalue()
 
 
-def cloud(project, api_origin=None, remote_worker=False, image=False, expect_pipeline=None):
+def cloud(
+    project,
+    api_origin=None,
+    remote_worker=False,
+    image=False,
+    expect_pipeline=None,
+    image_format="png",
+):
     settings = get_settings()
     assert settings.supabase_url == f"https://{project}.supabase.co", "Project mismatch"
     if api_origin:
@@ -123,12 +130,19 @@ def cloud(project, api_origin=None, remote_worker=False, image=False, expect_pip
                     assert "access-control-allow-origin" not in denied.headers
                 client.headers["Authorization"] = "Bearer " + tokens[0]
                 payload = fixture_image() if image else fixture_pdf()
-                content_type = "image/png" if image else "application/pdf"
+                if image and image_format != "png":
+                    with Image.open(io.BytesIO(payload)) as fixture:
+                        encoded = io.BytesIO()
+                        fixture.save(encoded, format=image_format.upper(), quality=92)
+                        payload = encoded.getvalue()
+                content_type = "image/" + image_format if image else "application/pdf"
                 create = client.post(
                     "/api/v1/receipts",
                     headers={"Idempotency-Key": str(uuid4())},
                     json={
-                        "filename": "synthetic-smoke.png" if image else "synthetic-smoke.pdf",
+                        "filename": "synthetic-smoke." + image_format
+                        if image
+                        else "synthetic-smoke.pdf",
                         "content_type": content_type,
                         "size_bytes": len(payload),
                     },
@@ -203,7 +217,9 @@ def cloud(project, api_origin=None, remote_worker=False, image=False, expect_pip
                             "live_smoke": "passed",
                             "pipeline_version": pipeline,
                             "auth_users": 2,
-                            "file": "synthetic Vietnamese PNG" if image else "synthetic PDF",
+                            "file": "synthetic Vietnamese " + image_format.upper()
+                            if image
+                            else "synthetic PDF",
                             "api": api_origin or "local TestClient",
                             "steps": [
                                 "Auth",
@@ -245,8 +261,10 @@ if __name__ == "__main__":
         "--image", action="store_true", help="Use a synthetic Vietnamese image instead of PDF"
     )
     parser.add_argument(
-        "--expect-pipeline", help="Require a pipeline suffix, e.g. +qwen3vl4b (reject rules fallback)"
+        "--expect-pipeline",
+        help="Require a pipeline suffix, e.g. +qwen3vl4b (reject rules fallback)",
     )
+    parser.add_argument("--image-format", choices=("png", "jpeg", "webp"), default="png")
     parser.add_argument(
         "--ocr", action="store_true", help="Download models and test a synthetic Vietnamese image"
     )
@@ -267,6 +285,13 @@ if __name__ == "__main__":
             )
         )
     elif args.project:
-        cloud(args.project, args.api_origin, args.remote_worker, args.image, args.expect_pipeline)
+        cloud(
+            args.project,
+            args.api_origin,
+            args.remote_worker,
+            args.image,
+            args.expect_pipeline,
+            args.image_format,
+        )
     else:
         parser.error("Specify --project or --ocr")
