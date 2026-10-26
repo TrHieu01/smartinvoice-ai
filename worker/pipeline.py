@@ -17,7 +17,7 @@ from backend.app.schemas.contracts import DocumentOCR, ExtractionResult, Receipt
 from backend.app.services.files import inspect_file
 from backend.app.services.validation import validate_receipt
 
-VERSION = "rules-0.4.1"
+VERSION = "rules-0.5.0"
 
 
 def fold(text):
@@ -258,6 +258,13 @@ def layout_items(ocr, document_rows):
             used = {line.id for _, source in items for line in source["line_total"]}
             if price.id not in used:
                 items.append((values, sources))
+    from worker.layout import geometry_items
+
+    known = {line.id for _, sources in items for line in sources["name"]}
+    for values, sources in geometry_items(ocr):
+        if not any(line.id in known for line in sources["name"]):
+            items.append((values, sources))
+            known.update(line.id for line in sources["name"])
     return items[:500]
 
 
@@ -278,7 +285,7 @@ def merchant_header(document_rows):
             )
             or re.match(r"[\d\W]", normalized)
             or re.search(
-                r"hoa don|phieu|phiu|thanh toan|quan |qun |phuong|phung|thanh pho|thanh ph",
+                r"hoa don|phieu|phiu|thanh toan|(?:quan|qun)\s+\d|phuong|phung|thanh pho|thanh ph",
                 normalized,
             )
         ):
@@ -332,7 +339,7 @@ def extract(ocr):
         ("tax_amount", r"tien thue|thue gtgt|vat|\btax\b"),
         (
             "total_amount",
-            r"tong thanh toan|tong cong|thanh tien|grand total|amount due|^total\b|tong tien",
+            r"tong thanh toan|tong cong|thanh tien|grand total|amount due|^total\b|tong tien|total of p[ao]yment",
         ),
     ]
     for row_index, (text, lines) in enumerate(document_rows):
@@ -357,7 +364,9 @@ def extract(ocr):
                     value += " " + following
                     address_lines += following_lines
             candidates.setdefault("merchant_address", []).append((value[:500], address_lines))
-        if re.search(r"thanh toan|hinh thuc|phuong thuc|payment|paid", normalized):
+        if re.search(
+            r"thanh toan|hinh thuc|phuong thuc|payment|paid|^tien mat$|^cash$", normalized
+        ):
             for pattern, method in (
                 (r"chuyen khoan|bank transfer", "Chuyển khoản"),
                 (r"tien mat|\bcash\b", "Tiền mặt"),
@@ -477,6 +486,24 @@ def extract(ocr):
         for key, value in values.items():
             if value is not None:
                 put(f"items/{index}/{key}", value, sources[key])
+    # A cash-tender label alone is not a grand total. Accept its printed amount
+    # only when every extracted product has a total and the complete sum agrees.
+    if len(data["items"]) >= 2 and all(item["line_total"] is not None for item in data["items"]):
+        item_sum = sum(Decimal(item["line_total"]) for item in data["items"])
+        for index, (text, lines) in enumerate(document_rows[:-1]):
+            if re.fullmatch(r"(?:tien mat|cash)", fold(text).strip()):
+                following, source = document_rows[index + 1]
+                gap = (
+                    source[0].bbox.y0 + source[0].bbox.y1 - lines[0].bbox.y0 - lines[0].bbox.y1
+                ) / 2
+                if (
+                    re.fullmatch(PRINTED_AMOUNT, fold(following).strip())
+                    and lines[0].id.split("-")[0] == source[0].id.split("-")[0]
+                    and 0 < gap < 0.065
+                ):
+                    amount = money(following)
+                    if amount is not None and Decimal(amount) == item_sum:
+                        candidates.setdefault("total_amount", []).append((amount, lines + source))
     for field, options in candidates.items():
         if len(set(value for value, _ in options)) == 1:
             put(field, options[0][0], options[0][1])

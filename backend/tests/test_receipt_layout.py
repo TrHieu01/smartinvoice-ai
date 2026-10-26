@@ -60,6 +60,77 @@ def checked_extract(ocr):
     return data, evidence, warnings
 
 
+def test_barcode_price_cells_keep_partial_items_and_missing_quantity():
+    ocr = document(
+        row(0.02, ("SYNTHETIC MART", 0.1, 0.8))
+        + row(
+            0.15,
+            ("Ma sp", 0.1, 0.3),
+            ("dgia", 0.45, 0.57),
+            ("s1", 0.65, 0.7),
+            ("so tien", 0.8, 0.95),
+        )
+        + row(0.2, ("001 Coffee pack 200g", 0.1, 0.7))
+        + row(0.225, ("1234567890123 50,000", 0.1, 0.57), ("2", 0.65, 0.7), ("100,000", 0.8, 0.95))
+        + row(0.27, ("002 Tea pack", 0.1, 0.6))
+        + row(0.295, ("1234567890124 35,000", 0.1, 0.57), ("35,000", 0.8, 0.95))
+    )
+    data, evidence, _ = checked_extract(ocr)
+    assert len(data.items) == 2
+    assert data.items[0].unit_price == "50000.00"
+    assert data.items[1].quantity is None
+    assert data.items[1].line_total == "35000.00"
+    assert data.items[0].unit is None
+
+
+def test_restaurant_metadata_is_not_a_product_and_cash_requires_matching_sum():
+    def ticket(cash):
+        return document(
+            row(0.02, ("QUAN AN SYNTHETIC", 0.1, 0.7))
+            + row(0.10, ("REG", 0.1, 0.2), ("000887", 0.8, 0.95))
+            + row(0.2, ("2 SOUP", 0.1, 0.5), ("40,000", 0.8, 0.95))
+            + row(0.25, ("TEA", 0.1, 0.5), ("10,000", 0.8, 0.95))
+            + row(0.32, ("TIEN MAT", 0.1, 0.5))
+            + row(0.35, (cash, 0.8, 0.95))
+        )
+
+    data, _, _ = checked_extract(ticket("50,000"))
+    assert data.merchant == "QUAN AN SYNTHETIC"
+    assert len(data.items) == 2
+    assert data.items[1].quantity is None
+    assert data.total_amount == "50000.00"
+    data, _, _ = checked_extract(ticket("100,000"))
+    assert data.total_amount is None
+
+
+def test_vat_table_uses_columns_not_vat_percentage_as_item_total():
+    ocr = document(
+        row(0.02, ("SYNTHETIC SHOP", 0.1, 0.8))
+        + row(
+            0.15,
+            ("Đơn vi tính", 0.4, 0.48),
+            ("Số lượng", 0.5, 0.57),
+            ("Đơn giá", 0.6, 0.68),
+            ("Thành tin chura có", 0.72, 0.85),
+            ("VAT", 0.9, 0.99),
+        )
+        + row(
+            0.20,
+            ("Fruit", 0.12, 0.35),
+            ("Kg", 0.4, 0.48),
+            ("0,5", 0.5, 0.57),
+            ("20,000", 0.6, 0.68),
+            ("10,000", 0.72, 0.85),
+            ("5%", 0.9, 0.99),
+        )
+    )
+    data, _, _ = checked_extract(ocr)
+    assert len(data.items) == 1
+    assert data.items[0].unit == "kg"
+    assert data.items[0].quantity == "0.5"
+    assert data.items[0].line_total == "10000.00"
+
+
 def test_weighted_items_below_name_and_ocr_total_label():
     ocr = document(
         row(0.02, ("CỬA HÀNG MẪU", 0.15, 0.8))

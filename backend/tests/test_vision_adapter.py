@@ -25,6 +25,56 @@ def image():
     return content.getvalue()
 
 
+def test_data_only_output_retains_valid_fields_when_one_amount_is_invalid(baseline):
+    response = {"data": baseline.data.model_dump(mode="json")}
+    response["data"]["tax_amount"] = "NaN"
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+qwen3vl4b-partial")
+    assert result.data.merchant == baseline.data.merchant
+    assert result.data.tax_amount == baseline.data.tax_amount
+    assert result.data.total_amount == baseline.data.total_amount
+
+
+def test_data_only_model_cannot_replace_merchant_without_ocr_support(baseline):
+    response = {"data": baseline.data.model_dump(mode="json")}
+    response["data"]["merchant"] = "INVENTED STORE NAME"
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+qwen3vl4b-partial")
+    assert result.data.merchant == baseline.data.merchant
+
+
+def test_data_only_empty_output_does_not_claim_model_success(baseline):
+    result = enhance(baseline, image(), "image/png", lambda *_: '{"data":{}}')
+    assert result.pipeline_version.endswith("+vlm-fallback")
+
+
+def test_data_only_items_align_without_model_generated_citations():
+    examples = Path(__file__).parents[2] / "contracts/examples"
+    baseline = ExtractionResult.model_validate_json(
+        (examples / "vlm.synthetic.baseline.json").read_text(encoding="utf-8")
+    )
+    raw = json.loads((examples / "vlm.synthetic.raw.json").read_text(encoding="utf-8"))
+    raw.pop("evidence")
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(raw))
+    assert "+qwen3vl4b" in result.pipeline_version
+    assert len(result.data.items) == 2
+    assert result.data.items[0].name == "Sữa tươi"
+    assert all(e.line_ids for e in result.evidence)
+
+
+def test_model_subset_keeps_baseline_products_and_prices():
+    examples = Path(__file__).parents[2] / "contracts/examples"
+    baseline = ExtractionResult.model_validate_json(
+        (examples / "vlm.synthetic.baseline.json").read_text(encoding="utf-8")
+    )
+    response = {"data": baseline.data.model_dump(mode="json")}
+    response["data"]["items"] = response["data"]["items"][:1]
+    response["data"]["items"][0]["unit_price"] = "NaN"
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert len(result.data.items) == len(baseline.data.items)
+    assert result.data.items[0].unit_price == baseline.data.items[0].unit_price
+
+
 def payload(result):
     return dict(
         data=result.data.model_dump(mode="json"),

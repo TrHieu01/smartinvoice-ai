@@ -36,6 +36,10 @@ class VisionPayload(Contract):
     evidence: list[VisionSource] = Field(max_length=2500)
 
 
+class VisionDataPayload(Contract):
+    data: ReceiptData
+
+
 def normalize_payload(output, currency_hint=None):
     """Normalize observed wire conventions, retaining strict semantic validation."""
     value = json.loads(output, parse_float=Decimal)
@@ -142,15 +146,12 @@ def prompt_for(result):
         "Separate product pack size from sale unit. Money/quantity must be unsigned "
         "decimal STRINGS, dates YYYY-MM-DD. Only VND is supported; other currencies null. "
         'Write 99.000 VND as "99000.00", without thousands separators. '
-        "For EVERY non-null field except line_number, cite evidence with its JSON "
-        "pointer and original OCR line_ids covering that value's image region. "
-        'Use paths like "/merchant" or "/items/0/unit", without a /data prefix. '
-        "Do not cite null fields or line_number. Never emit empty line_ids. "
-        "Use an empty items array when no products are printed. Cite leaf fields, not arrays. "
-        "If no suitable OCR region is available, leave that field null. "
+        "Return only the data object specified below; do not generate evidence or line_ids. "
+        "The application aligns extracted values to the OCR separately. "
+        "Use an empty items array when no products are printed. "
         "Address must be merchant address, not customer/delivery address. "
         "Never repair arithmetic to make totals match.\nSCHEMA:\n"
-        + json.dumps(VisionPayload.model_json_schema(), ensure_ascii=False)
+        + json.dumps(VisionDataPayload.model_json_schema(), ensure_ascii=False)
         + "\nOCR REGIONS:\n"
         + json.dumps(lines, ensure_ascii=False)
     )
@@ -273,13 +274,24 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
         if len(output) > 250_000:
             raise ValueError("VLM output limit")
         fenced = re.fullmatch(r"\s*```(?:json)?\s*([\s\S]*?)\s*```\s*", output)
-        normalized, restored = restore_baseline_sources(
-            normalize_payload(fenced[1] if fenced else output, baseline.data.currency), baseline
-        )
-        payload = VisionPayload.model_validate(normalized)
+        normalized = normalize_payload(fenced[1] if fenced else output, baseline.data.currency)
+        partial = False
+        if isinstance(normalized, dict) and "evidence" not in normalized:
+            from worker.alignment import align_data
+
+            if not isinstance(normalized.get("data"), dict):
+                # Retain the legacy wrapper error diagnostics.
+                VisionPayload.model_validate(normalized)
+            aligned, evidence, partial, accepted = align_data(normalized["data"], baseline)
+            if not accepted:
+                raise ValueError("No supported model fields")
+            payload = VisionPayload(data=aligned, evidence=[])
+        else:
+            normalized, restored = restore_baseline_sources(normalized, baseline)
+            payload = VisionPayload.model_validate(normalized)
+            evidence = []
         stage = "evidence"
         by_id = {line.id: line for page in baseline.ocr.pages for line in page.lines}
-        evidence = []
         for source in payload.evidence:
             if not set(source.line_ids) <= allowed_ids:
                 raise ValueError("Unknown source region")
@@ -314,6 +326,15 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
             or (w.field == "/purchase_date" and "thiếu năm" in w.message)
         ]
         warnings += validate_receipt(payload.data)
+        if partial:
+            warnings.append(
+                ValidationWarning(
+                    code="ambiguous_value",
+                    severity="warning",
+                    field=None,
+                    message="Một số trường AI chưa có nguồn OCR hợp lệ; đã giữ các trường xác minh được và dữ liệu baseline để bạn đối chiếu.",
+                )
+            )
         warnings.append(
             ValidationWarning(
                 code="ambiguous_value",
@@ -329,7 +350,8 @@ def enhance(baseline: ExtractionResult, content: bytes, mime: str, generator=Non
                 "data": payload.data.model_dump(mode="json"),
                 "evidence": evidence,
                 "warnings": [w.model_dump(mode="json") for w in warnings[:100]],
-                "pipeline_version": baseline.pipeline_version + "+qwen3vl4b",
+                "pipeline_version": baseline.pipeline_version
+                + ("+qwen3vl4b-partial" if partial else "+qwen3vl4b"),
             }
         )
     except Exception as error:

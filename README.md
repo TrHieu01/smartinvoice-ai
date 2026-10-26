@@ -12,6 +12,8 @@ Brevo Free SMTP đã được cấu hình; người dùng đã nhận email xác
 
 ## Kiến trúc
 
+Bản sửa pipeline mới: [vòng đời model, extraction từng trường và replay hóa đơn thực](docs/pipeline-reliability-20261026.md). Có 120 pytest; các kết quả replay OCR không thay thế benchmark Qwen trên GPU.
+
 ```mermaid
 flowchart LR
   U[Next.js · Vercel Hobby] -->|Bearer JWT| A[FastAPI · Render Free]

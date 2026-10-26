@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -56,17 +57,32 @@ async def process(payload):
                 receipt_id=row["id"],
                 job_id=str(task.job_id),
             )
-            run = await asyncio.to_thread(
-                subprocess.run,
-                [sys.executable, "-m", "worker.process"],
-                input=json.dumps(message),
-                text=True,
-                capture_output=True,
-                timeout=240,
-                check=True,
-            )
-            log_diagnostics(run.stderr)
-            result = ExtractionResult.model_validate_json(run.stdout)
+            if os.getenv("EXTRACTION_BACKEND") == "qwen_vl":
+                from worker.resident import pipeline
+
+                response = await asyncio.to_thread(
+                    pipeline.run,
+                    dict(
+                        content=content,
+                        mime=row["content_type"],
+                        receipt_id=row["id"],
+                        job_id=str(task.job_id),
+                    ),
+                )
+                log_diagnostics("\n".join(response["diagnostics"]))
+                result = ExtractionResult.model_validate_json(response["result"])
+            else:
+                run = await asyncio.to_thread(
+                    subprocess.run,
+                    [sys.executable, "-m", "worker.process"],
+                    input=json.dumps(message),
+                    text=True,
+                    capture_output=True,
+                    timeout=240,
+                    check=True,
+                )
+                log_diagnostics(run.stderr)
+                result = ExtractionResult.model_validate_json(run.stdout)
             saved = await gateway.rpc(
                 "si_complete",
                 {
@@ -81,7 +97,7 @@ async def process(payload):
                 error.code
                 if isinstance(error, AppError)
                 else "processing_timeout"
-                if isinstance(error, subprocess.TimeoutExpired)
+                if isinstance(error, (subprocess.TimeoutExpired, TimeoutError))
                 else "processing_failed"
             )
             # Store only a stable code; subprocess output can contain receipt text.
