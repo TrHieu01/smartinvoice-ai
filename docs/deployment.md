@@ -6,7 +6,7 @@ Supabase Free hiện tại: `smartinvoice-ai`, ref `rnjamfgzckmgvvpuywgh`, `TrHi
 
 6 migration đã áp dụng lên project mới; không chạy lại vào database đã có schema. Bucket `receipts` private. Edge `dispatch-jobs` đã deploy; dùng `x-dispatch-secret` tự xác thực, không mở truy cập khi thiếu secret. JWT gateway tắt để Cron/API gọi bằng shared secret. Migration `receipt_optional_fields` thêm ĐVT, địa chỉ, phương thức thanh toán và cho phép extraction schema 1.1.0 cùng bản 1.0.0.
 
-Edge Secrets đã cấu hình: `DISPATCHER_SECRET`, `RUNPOD_ENDPOINT_ID`, `RUNPOD_API_KEY`. `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` được nền tảng inject. Dispatcher secret khớp backend và Vault. API key RunPod bị giới hạn GET/POST tới endpoint SmartInvoice, không có quyền GraphQL.
+Edge Secrets đang dùng: `DISPATCHER_SECRET`, `RUNPOD_ENDPOINT_ID=dvaal7yuostlnu`, `RUNPOD_VLM_TRIAL_API_KEY`. Tên key giữ từ phiên thử; credential hiện chỉ cho phép GET/POST endpoint Qwen này, không có quyền GraphQL. Dispatcher v5 không fallback sang key CPU. `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY` được nền tảng inject. Dispatcher secret khớp backend và Vault.
 
 Vault có hai secret: `smartinvoice_dispatch_url` và `smartinvoice_dispatch_secret`. Migration thứ năm bật pg_cron/pg_net; đã chạy `supabase/setup-dispatch-cron.sql` một lần, lịch `smartinvoice-dispatch` mỗi phút. Script chặn cài trùng; cài mới cần điền Vault trước khi bật lịch.
 
@@ -32,13 +32,21 @@ Env được nhúng khi build; thay đổi cần redeploy. Không đưa secret/s
 
 ## RunPod
 
-Chạy Actions **Build worker image**, đợi build/push GHCR thành công. Package private cần đúng registry credential; không nhúng token vào image. Pin image bằng SHA đã kiểm tra.
+Production từ 26/10/2026 dùng endpoint `smartinvoice-vlm` (`dvaal7yuostlnu`), Qwen3-VL-4B trên GPU 24 GB. Chạy Actions **Build experimental VLM worker image**, đợi build/push GHCR thành công rồi pin digest. `runtime_only=true` chỉ dùng khi dependencies không đổi, tái sử dụng các lớp model đã xác minh. Package public không cần registry credential; không nhúng token vào image.
 
-Image hiện dùng `paddlepaddle` CPU + mobile detector/Latin recognizer, tải model lúc build. Không đặt `OCR_DEVICE=gpu:0` với wheel CPU. Endpoint `smartinvoice-ocr` (`ouae2lld2k5far`) dùng CPU 2 vCPU/8 GB, giá UI lúc cấu hình $0.0000306/s. Đã xác minh có CPU Serverless trong tài khoản.
+Endpoint CPU `smartinvoice-ocr` (`ouae2lld2k5far`) đã đặt active=0/max=0. PaddleOCR/PDF preprocessing trong image GPU vẫn dùng CPU; Qwen inference dùng CUDA. Khi Qwen thất bại, rules fallback chạy trong cùng worker GPU và ghi rõ `+vlm-fallback`, không gửi việc sang endpoint CPU.
 
-Image CPU public đã build và cập nhật endpoint: `ghcr.io/trhieu01/smartinvoice-ai-worker@sha256:afb7295ca4af7f54fb52a6cbeae66b56df6a24b52e61a1a1c00d2a10b6daeaba` (commit `ec0c653`, thư mục trạng thái worker có quyền ghi, async handler và parser `rules-0.4.1`). Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`. Qwen dùng image riêng, chưa bật trên production; [các trường mới và thử nghiệm GPU](extended-fields-and-vlm.md).
+Server key nằm trong RunPod Secrets, env tham chiếu `{{ RUNPOD_SECRET_SMARTINVOICE_SUPABASE_KEY }}`. Start command: `python -u -m worker.handler`; không dùng benchmark handler cho production. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `EXTRACTION_BACKEND=qwen_vl`. [Các trường mới và kiểm thử GPU](extended-fields-and-vlm.md).
 
-Flex, active/min 0, max 1, concurrency 1, idle timeout ngắn, execution timeout 300s, TTL 600s. Không tạo Pod chạy liên tục/network volume. Env: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `OCR_DEVICE=cpu` cho image hiện tại. Compute vẫn trừ credit khi chạy.
+Image hiện hành từ commit `46dcf57`, [build thành công](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/40264352426), anonymous GHCR manifest HTTP 200:
+
+```text
+ghcr.io/trhieu01/smartinvoice-ai-worker-vlm@sha256:3d7e699f5bd090387e842a6f96eb551993adf892432e4599a1d639c92d2b8571
+```
+
+GPU Flex, active/min 0, max 1, concurrency 1, idle 5s, execution timeout 300s, disk 40 GB. Không tạo Pod chạy liên tục/network volume. Giá nhóm GPU 24 GB hiển thị lúc cấu hình khoảng $0,69/giờ; compute vẫn trừ credit khi chạy. Ngân sách phiên chuyển đổi tối đa $1 là giới hạn theo dõi, không phải hard cap RunPod.
+
+Image Qwen lớn; lần worker tải/giải nén image mới có thể mất vài phút trước khi bắt đầu xử lý. Phiên 26/10 ghi nhận queue delay khoảng 3m43s trên lần PDF thứ hai. Không coi queue delay này là inference latency; chưa có benchmark P95. Giữ 0 worker thường trực đồng nghĩa chấp nhận cold start.
 
 Input: `{"input":{"job_id":"<UUID job đã submit>"}}`. Không gửi ảnh/URL/credential trong input. Chỉ coi thành công khi receipt trong DB chuyển `needs_review`.
 

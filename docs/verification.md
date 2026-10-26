@@ -1,4 +1,20 @@
-# Kiểm chứng — 21/10/2026
+# Kiểm chứng
+
+## Chuyển production sang Qwen GPU — 26/10/2026
+
+- CPU endpoint `ouae2lld2k5far`: active=0/max=0. GPU endpoint `dvaal7yuostlnu`: active=0/max=1, idle=5s, timeout=300s, start command `python -u -m worker.handler`, `EXTRACTION_BACKEND=qwen_vl`.
+- Edge dispatcher v5 dùng endpoint GPU và key GET/POST chỉ cho endpoint này. Không có CPU key fallback.
+- Ảnh PNG tiếng Việt giả lập đã qua cloud end-to-end với `rules-0.4.1+qwen3vl4b`: upload, evidence, tenant isolation, review, analytics 110.000 VND và cleanup.
+- PDF text đầu tiên xử lý xong nhưng Qwen fallback do schema. Không tính đây là Qwen thành công. Bản sửa chuẩn hóa numeric JSON chính xác, optional null/empty và evidence cho leaf fields; vẫn từ chối thiếu source, tên sản phẩm rỗng và dữ liệu ngoài schema.
+- PDF lần hai trên image `71d6d27` vẫn fallback; log an toàn xác định `evidence/too_short`: Qwen trả citation có `line_ids=[]`. Adapter mới chỉ khôi phục citation scalar từ baseline nếu giá trị khớp chính xác (tiền so sánh Decimal), ghi method `rule`; không mượn source item theo vị trí và không chấp nhận giá trị đổi/unknown source.
+- [CI bddf392](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/40264436332) thành công; 108 pytest local và Ruff qua. Runtime worker giống commit `46dcf57`; commit sau chỉ điều chỉnh regression cho hành vi corroboration mới.
+- [CI 71d6d27](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/40262796427) thành công; 106 pytest local, 14 SQL tests. Smoke có `--expect-pipeline +qwen3vl4b` để phát hiện fallback thay vì báo thành công chung.
+- PDF lần ba trên image `46dcf57` vẫn fallback `evidence/too_short`: không phải mọi giá trị model thiếu citation đều khớp baseline. Không nới kiểm tra source để ép thành công. Tổng ba lần PDF đã xử lý tới `needs_review` bằng baseline nhưng không đạt assertion Qwen; đây là giới hạn còn tồn tại.
+- GPU image hiện hành [build 40264352426](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/40264352426) thành công, anonymous manifest HTTP 200, release 8 đã lưu digest `sha256:3d7e699f5bd090387e842a6f96eb551993adf892432e4599a1d639c92d2b8571`.
+- Đã gửi 5 hóa đơn giả lập: 1 PNG, 3 lượt PDF và 1 JPEG. Số dư UI gần nhất 14,55 → 14,51 USD (làm tròn, có thể cập nhật chậm). Giới hạn phiên $1/tối đa 5 hóa đơn; không phải hard cap nền tảng. Không gửi thêm lượt tính phí trong phiên.
+- JPEG tiếng Việt trên image cuối **passed**, pipeline `rules-0.4.1+qwen3vl4b`; Auth/signed upload/file validation, evidence, tenant isolation, signed download, human review, analytics 110.000 VND và delete đều qua. Mỗi lượt tạo hai user dùng một lần, cleanup chỉ dữ liệu vừa tạo. WebP và hóa đơn thực chưa benchmark trong phiên này.
+
+## Lịch sử — 21/10/2026
 
 ## Đã qua
 

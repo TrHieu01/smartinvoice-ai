@@ -2,11 +2,11 @@
 
 Ứng dụng đọc hóa đơn Việt/Anh: upload → OCR/extraction → đối chiếu → chỉnh sửa/xác nhận → thống kê. Portfolio cho AI Application Engineer Intern.
 
-**Hiện trạng 21/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (6 migration) và RunPod CPU đã deploy. Smoke production bằng ảnh tiếng Việt giả lập đã qua luồng Auth → signed upload → Edge dispatcher → RunPod OCR → review → analytics, kèm phân quyền hai người dùng và cleanup. CI xanh: 92 pytest, 14 SQL/PostgreSQL tests, 3 frontend Auth tests, TypeScript/build, API Docker build và Edge check. Đăng ký email qua Brevo SMTP đã kiểm chứng; chưa benchmark hóa đơn thực.
+**Hiện trạng 26/10/2026:** frontend Vercel Hobby, API Render Free, Supabase Free (6 migration) và RunPod Qwen GPU. Endpoint CPU đã đặt max workers = 0; dispatcher gửi việc tới GPU. Ảnh PNG/JPEG Việt giả lập đã qua pipeline `rules-0.4.1+qwen3vl4b`, Auth → signed upload → review → analytics, phân quyền hai người dùng và cleanup. Adapter hiện qua 108 pytest local và 14 SQL/PostgreSQL tests. Đăng ký email qua Brevo SMTP đã kiểm chứng; chưa benchmark hóa đơn thực. [Kết quả kiểm thử](docs/verification.md).
 
 - [Ứng dụng](https://smartinvoice-ai-coral.vercel.app) — chọn **Xem không gian mẫu** để khám phá không cần tài khoản.
 - [Swagger API](https://smartinvoice-api-v43w.onrender.com/docs) — Render Free có thể cold start.
-- [Mã nguồn](https://github.com/TrHieu01/smartinvoice-ai) · [Worker image](https://github.com/TrHieu01/smartinvoice-ai/pkgs/container/smartinvoice-ai-worker).
+- [Mã nguồn](https://github.com/TrHieu01/smartinvoice-ai) · [Worker image](https://github.com/TrHieu01/smartinvoice-ai/pkgs/container/smartinvoice-ai-worker-vlm).
 
 Brevo Free SMTP đã được cấu hình; người dùng đã nhận email xác nhận và đăng nhập thành công. Xác nhận email vẫn bật. [Cấu hình và kiểm chứng email](docs/email-delivery.md).
 
@@ -23,27 +23,27 @@ flowchart LR
   E -->|job_id| R[RunPod worker]
   R -->|Claim lease| D
   R -->|Bounded download| S
-  R --> P[PDF text / PaddleOCR → rules → validation]
+  R --> P[PDF text / PaddleOCR → Qwen GPU → validation]
   P -->|Atomic commit + fencing token| D
   E -->|Deferred cleanup| S
 ```
 
-Không dùng LLM bắt buộc, Redis hay Cloud Tasks. Database là nguồn trạng thái chính. Tiền dùng chuỗi decimal ở API và `NUMERIC` trong Postgres. MVP hỗ trợ VND, không cộng trực tiếp nhiều loại tiền tệ.
+Qwen3-VL-4B tự host trên GPU đọc ảnh cùng OCR baseline để tạo dữ liệu có cấu trúc. Nếu model lỗi hoặc không đạt schema/evidence, worker giữ rules baseline và cảnh báo để người dùng review. Không dùng Redis hay Cloud Tasks. Database là nguồn trạng thái chính. Tiền dùng chuỗi decimal ở API và `NUMERIC` trong Postgres. MVP hỗ trợ VND, không cộng trực tiếp nhiều loại tiền tệ.
 
 Parser `rules-0.3.0` hỗ trợ bảng/thẻ sản phẩm nhiều dòng, số chứng từ và tổng tiền; loại thanh trạng thái khỏi tên cửa hàng. Replay hai mẫu báo lỗi nhận được 8 và 4 sản phẩm; đây chưa phải benchmark. [Kiểm chứng và giới hạn extraction](docs/extraction.md).
 
-`rules-0.4.1` và API 1.1 bổ sung ĐVT sản phẩm, địa chỉ cửa hàng và phương thức thanh toán từ extraction đến human review/lưu dữ liệu. Adapter Qwen3-VL-4B được chuẩn bị trong image GPU riêng, tắt mặc định; đã thử GPU trên ảnh tổng hợp và sửa adapter qua replay đầu ra đã ghi nhận; chưa thay CPU production. [Trường mới và kế hoạch thử model](docs/extended-fields-and-vlm.md).
+`rules-0.4.1` và API 1.1 bổ sung ĐVT sản phẩm, địa chỉ cửa hàng và phương thức thanh toán từ extraction đến human review/lưu dữ liệu. Qwen3-VL-4B đã bật trên endpoint GPU production; từng kết quả ghi pipeline/version và source evidence. [Trường mới và kiểm thử model](docs/extended-fields-and-vlm.md).
 
 | Thành phần | Công nghệ | Nền tảng |
 |---|---|---|
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind 4 | Vercel Hobby |
 | API | FastAPI, Pydantic, httpx | Render Free |
 | Auth/database/file | Supabase Auth/PostgreSQL/private Storage | Supabase Free |
-| OCR | PaddleOCR 3, OpenCV, PyMuPDF, rules | RunPod credit hiện có |
+| AI/OCR | Qwen3-VL-4B, PaddleOCR 3, OpenCV, PyMuPDF, rules | RunPod credit hiện có |
 | Queue | Transactional outbox, leases, Edge/Cron | Supabase |
 | CI/image | GitHub Actions/GHCR | Trong quota miễn phí |
 
-RunPod là compute tính phí theo sử dụng: **0 active workers, tối đa 1 worker**, idle 5s, CPU 2 vCPU/8 GB. Không tạo Pod chạy liên tục. Image hiện là Paddle CPU baseline; GPU đang được thử riêng, chưa thay baseline. Không tự nâng nền tảng sang gói trả phí. [Chi phí và nguồn chính thức](docs/free-deployment.md).
+RunPod là compute tính phí theo sử dụng: GPU 24 GB, **0 active workers, tối đa 1 worker**, idle 5s. Endpoint CPU riêng đã tắt; PDF/OCR preprocessing vẫn dùng CPU bên trong worker GPU. Không tạo Pod chạy liên tục hoặc tự nâng nền tảng sang gói trả phí. [Chi phí và nguồn chính thức](docs/free-deployment.md).
 
 ## Chạy local
 
@@ -107,6 +107,7 @@ uv run python -m scripts.smoke_cloud --ocr
 - Worker nhận duy nhất `job_id`; lease 360s, subprocess timeout 240s, fencing token chặn attempt cũ.
 - Dispatcher retry có backoff, tối đa 3 lần gửi/provider job, lưu provider ID để không gửi liên tục khi đang chờ. Lỗi worker chuyển `failed`, người dùng có thể retry trong giới hạn 3 lượt xử lý/hóa đơn.
 - AI có source evidence/bounding box, warning/timing/version. Trường thiếu là null, không tự điền 0.
+- Qwen PDF text còn gặp citation OCR rỗng trên fixture kiểm thử; worker trả rules fallback kèm cảnh báo. Chưa chứng minh Qwen cải thiện accuracy trên hóa đơn thực.
 - Review kiểm tra version, lưu lịch sử sửa riêng; AI result bất biến. Chỉ receipt confirmed được cộng vào dashboard.
 - Xóa ẩn ngay, hủy job, chờ upload capability hết hạn +5 phút rồi gọi Storage API trước khi purge database.
 - Rules baseline hỗ trợ nhãn Việt/Anh, ngày dd/mm/yyyy, tiền có dấu phân cách và item có cột rõ ràng. Ảnh mờ/nghiêng, số âm, bố cục nhiều bảng và đa tiền tệ cần bổ sung. Không hứa đọc chính xác mọi hóa đơn.

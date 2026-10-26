@@ -1,3 +1,9 @@
+# Cập nhật production — 26/10/2026
+
+Qwen3-VL-4B đã bật trên endpoint GPU `smartinvoice-vlm`, active=0/max=1; CPU endpoint riêng max=0. Server handler xử lý job thật, dispatcher v5 chỉ dùng key của GPU. Ảnh PNG/JPEG Việt tổng hợp đã qua pipeline `rules-0.4.1+qwen3vl4b` và toàn bộ luồng review/analytics. Ba lượt PDF text vẫn fallback do citation OCR rỗng; adapter không chấp nhận giá trị không có nguồn hợp lệ. Hai bản sửa chuẩn hóa JSON và khôi phục citation scalar khớp baseline đã có regression tests, nhưng chưa giải quyết mọi citation thiếu của Qwen. Đây chưa phải benchmark hóa đơn thực. Chi tiết hiện hành ở [kiểm chứng](verification.md); các phiên GPU tắt bên dưới là lịch sử ngày 21/10.
+
+---
+
 # Trường bổ sung và thử nghiệm mô hình đọc ảnh
 
 ## Các trường mới
