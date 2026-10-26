@@ -332,6 +332,7 @@ def test_normalized_paths_still_require_valid_unique_sources(baseline, invalid):
         response["evidence"].append({"field": "/data/not_a_field", "line_ids": []})
     else:
         first["line_ids"] = []
+        response["data"][first["field"].removeprefix("/")] = "UNSUPPORTED VALUE"
     result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
     assert result.pipeline_version.endswith("+vlm-fallback")
 
