@@ -3,7 +3,8 @@ const env = (name: string) => Deno.env.get(name) ?? "";
 const base = env("SUPABASE_URL");
 const key = env("SUPABASE_SERVICE_ROLE_KEY");
 const endpoint = env("RUNPOD_ENDPOINT_ID");
-const podKey = env("RUNPOD_API_KEY");
+// Reuse the existing endpoint-scoped Qwen key; never fall back to the CPU key.
+const podKey = env("RUNPOD_VLM_TRIAL_API_KEY");
 const secret = env("DISPATCHER_SECRET");
 
 async function authenticated(value: string) {

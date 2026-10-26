@@ -48,7 +48,7 @@ def fixture_image():
     lines = [
         "CỬA HÀNG MINH HỌA",
         "HÓA ĐƠN BÁN HÀNG",
-        "Ngày: 21/10/2026",
+        "Ngày: " + date.today().strftime("%d/%m/%Y"),
         "MST: 0123456789",
         "Tiền hàng: 100.000",
         "Tiền thuế: 10.000",
@@ -62,7 +62,7 @@ def fixture_image():
     return output.getvalue()
 
 
-def cloud(project, api_origin=None, remote_worker=False, image=False):
+def cloud(project, api_origin=None, remote_worker=False, image=False, expect_pipeline=None):
     settings = get_settings()
     assert settings.supabase_url == f"https://{project}.supabase.co", "Project mismatch"
     if api_origin:
@@ -172,6 +172,9 @@ def cloud(project, api_origin=None, remote_worker=False, image=False):
                 detail = client.get(f"/api/v1/receipts/{rid}")
                 assert detail.status_code == 200, detail.text
                 detail = detail.json()
+                pipeline = detail["latest_extraction"]["pipeline_version"]
+                if expect_pipeline:
+                    assert pipeline.endswith(expect_pipeline), f"Unexpected pipeline: {pipeline}"
                 assert detail["data"]["total_amount"] == "110000.00"
                 other = {"Authorization": "Bearer " + tokens[1]}
                 assert client.get(f"/api/v1/receipts/{rid}", headers=other).status_code == 404
@@ -198,6 +201,7 @@ def cloud(project, api_origin=None, remote_worker=False, image=False):
                     json.dumps(
                         {
                             "live_smoke": "passed",
+                            "pipeline_version": pipeline,
                             "auth_users": 2,
                             "file": "synthetic Vietnamese PNG" if image else "synthetic PDF",
                             "api": api_origin or "local TestClient",
@@ -241,6 +245,9 @@ if __name__ == "__main__":
         "--image", action="store_true", help="Use a synthetic Vietnamese image instead of PDF"
     )
     parser.add_argument(
+        "--expect-pipeline", help="Require a pipeline suffix, e.g. +qwen3vl4b (reject rules fallback)"
+    )
+    parser.add_argument(
         "--ocr", action="store_true", help="Download models and test a synthetic Vietnamese image"
     )
     args = parser.parse_args()
@@ -260,6 +267,6 @@ if __name__ == "__main__":
             )
         )
     elif args.project:
-        cloud(args.project, args.api_origin, args.remote_worker, args.image)
+        cloud(args.project, args.api_origin, args.remote_worker, args.image, args.expect_pipeline)
     else:
         parser.error("Specify --project or --ocr")

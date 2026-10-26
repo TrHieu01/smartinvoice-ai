@@ -85,12 +85,110 @@ def test_generation_failure_does_not_expose_provider_output(baseline, capsys, ca
 def test_missing_wrapper_has_safe_diagnostics(baseline, capsys):
     result = enhance(baseline, image(), "image/png", lambda *_: json.dumps({"PRIVATE": 1}))
     assert result.pipeline_version.endswith("+vlm-fallback")
-    assert capsys.readouterr().err == "VLM_DIAG decode missing_data\n"
+    stderr = capsys.readouterr().err
+    assert stderr.endswith("VLM_DIAG decode missing_data\n")
+    assert "PRIVATE" not in stderr
 
 
 def test_child_log_forwarding_rejects_arbitrary_details(caplog):
-    log_diagnostics("VLM_DIAG generate runtime PRIVATE\nVLM_DIAG PRIVATE schema\n")
+    log_diagnostics(
+        "VLM_DIAG generate runtime PRIVATE\nVLM_DIAG PRIVATE schema\n"
+        "VLM_SCHEMA money string_type PRIVATE\nVLM_SCHEMA PRIVATE missing\n"
+    )
     assert not caplog.records
+
+
+@pytest.mark.parametrize("value,expected", [(0, "0"), (110000, "110000"), (1234.25, "1234.25")])
+def test_json_numeric_amounts_and_quantities_are_converted_exactly(baseline, value, expected):
+    response = payload(baseline)
+    response["data"]["total_amount"] = value
+    response["data"]["items"] = [
+        {
+            "line_number": 1,
+            "name": "Synthetic",
+            "quantity": 0.508,
+            "unit_price": 25000,
+            "line_total": None,
+        }
+    ]
+    result = VisionPayload.model_validate(normalize_payload(json.dumps(response), "VND"))
+    assert result.data.total_amount == expected
+    assert result.data.items[0].quantity == "0.508"
+    assert result.data.items[0].unit_price == "25000"
+
+
+@pytest.mark.parametrize("value", [True, -1, 0.001, 0.30000000000000004])
+def test_numeric_wire_values_are_not_rounded_or_treated_as_booleans(baseline, value):
+    response = payload(baseline)
+    response["data"]["total_amount"] = value
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+vlm-fallback")
+
+
+def test_numeric_exponents_are_bounded_before_formatting(baseline):
+    response = payload(baseline)
+    response["data"]["total_amount"] = "EXPONENT"
+    text = json.dumps(response).replace('"EXPONENT"', "1e99999999")
+    with pytest.raises(ValueError):
+        VisionPayload.model_validate(normalize_payload(text, "VND"))
+
+
+@pytest.mark.parametrize("items", [None, []])
+def test_no_products_and_redundant_array_evidence_are_supported(baseline, items):
+    response = payload(baseline)
+    response["data"]["items"] = items
+    response["evidence"].append({"field": "/data/items", "line_ids": []})
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+qwen3vl4b")
+    assert result.data.items == []
+
+
+def test_array_citation_cannot_replace_leaf_evidence(baseline):
+    response = payload(baseline)
+    response["data"]["items"] = [
+        {
+            "line_number": 1,
+            "name": "Synthetic",
+            "quantity": "1",
+            "unit_price": None,
+            "line_total": None,
+        }
+    ]
+    response["evidence"].append({"field": "/data/items/0", "line_ids": ["p1-l1"]})
+    result = enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    assert result.pipeline_version.endswith("+vlm-fallback")
+
+
+def test_empty_optional_scalars_are_unknown_not_invented_zero(baseline):
+    response = payload(baseline)
+    response["data"].update(
+        merchant_tax_id="", merchant_address="  ", payment_method="", tax_amount=""
+    )
+    parsed = VisionPayload.model_validate(normalize_payload(json.dumps(response), "VND"))
+    assert parsed.data.merchant_tax_id is None
+    assert parsed.data.merchant_address is None
+    assert parsed.data.payment_method is None
+    assert parsed.data.tax_amount is None
+
+
+def test_empty_product_name_is_still_invalid(baseline):
+    response = payload(baseline)
+    response["data"]["items"] = [
+        {"line_number": 1, "name": "", "quantity": "1", "unit_price": None, "line_total": None}
+    ]
+    with pytest.raises(ValueError):
+        VisionPayload.model_validate(normalize_payload(json.dumps(response), "VND"))
+
+
+def test_schema_diagnostics_never_include_property_names_or_values(baseline, capsys, caplog):
+    response = payload(baseline)
+    response["data"]["PRIVATE_PROPERTY"] = "PRIVATE_VALUE"
+    enhance(baseline, image(), "image/png", lambda *_: json.dumps(response))
+    stderr = capsys.readouterr().err
+    log_diagnostics(stderr)
+    assert "VLM_SCHEMA data extra_forbidden" in stderr
+    assert "category=data type=extra_forbidden" in caplog.text
+    assert "PRIVATE" not in stderr + caplog.text
 
 
 def test_benchmark_rejects_user_documents():

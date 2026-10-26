@@ -17,9 +17,19 @@ from backend.app.schemas.contracts import ExtractionResult, ProcessTask
 
 
 def log_diagnostics(stderr):
+    for category, kind in re.findall(
+        r"^VLM_SCHEMA (money|quantity|date|evidence|data|other) "
+        r"(string_type|string_pattern_mismatch|missing|list_type|too_short|too_long|"
+        r"extra_forbidden|literal_error|value_error|json_invalid|int_parsing|other)$",
+        stderr,
+        re.MULTILINE,
+    )[:10]:
+        logging.getLogger(__name__).warning("VLM schema category=%s type=%s", category, kind)
     for stage, reason in re.findall(
         r"^VLM_DIAG (prepare|generate|decode|evidence|validate) "
-        r"(runtime|schema|missing_data|missing_evidence|invalid)$", stderr, re.MULTILINE
+        r"(runtime|schema|missing_data|missing_evidence|invalid)$",
+        stderr,
+        re.MULTILINE,
     )[:5]:
         logging.getLogger(__name__).warning("VLM fallback stage=%s reason=%s", stage, reason)
 
