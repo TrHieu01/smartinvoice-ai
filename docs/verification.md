@@ -11,7 +11,7 @@
 - [CI 71d6d27](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/40262796427) thành công; 106 pytest local, 14 SQL tests. Smoke có `--expect-pipeline +qwen3vl4b` để phát hiện fallback thay vì báo thành công chung.
 - PDF lần ba trên image `46dcf57` vẫn fallback `evidence/too_short`: không phải mọi giá trị model thiếu citation đều khớp baseline. Không nới kiểm tra source để ép thành công. Tổng ba lần PDF đã xử lý tới `needs_review` bằng baseline nhưng không đạt assertion Qwen; đây là giới hạn còn tồn tại.
 - GPU image hiện hành [build 40264352426](https://github.com/TrHieu01/smartinvoice-ai/actions/runs/40264352426) thành công, anonymous manifest HTTP 200, release 8 đã lưu digest `sha256:3d7e699f5bd090387e842a6f96eb551993adf892432e4599a1d639c92d2b8571`.
-- Đã gửi 5 hóa đơn giả lập: 1 PNG, 3 lượt PDF và 1 JPEG. Số dư UI gần nhất 14,55 → 14,51 USD (làm tròn, có thể cập nhật chậm). Giới hạn phiên $1/tối đa 5 hóa đơn; không phải hard cap nền tảng. Không gửi thêm lượt tính phí trong phiên.
+- Đã gửi 5 hóa đơn giả lập: 1 PNG, 3 lượt PDF và 1 JPEG. Số dư UI gần nhất 14,55 → 14,49 USD (làm tròn, có thể cập nhật chậm). Giới hạn phiên $1/tối đa 5 hóa đơn; không phải hard cap nền tảng. Không gửi thêm lượt tính phí trong phiên.
 - JPEG tiếng Việt trên image cuối **passed**, pipeline `rules-0.4.1+qwen3vl4b`; Auth/signed upload/file validation, evidence, tenant isolation, signed download, human review, analytics 110.000 VND và delete đều qua. Mỗi lượt tạo hai user dùng một lần, cleanup chỉ dữ liệu vừa tạo. WebP và hóa đơn thực chưa benchmark trong phiên này.
 
 ## Lịch sử — 21/10/2026
