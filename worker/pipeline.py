@@ -93,6 +93,8 @@ NON_PRODUCT = (
 def product_name(text):
     return (
         sum(c.isalpha() for c in text) >= 3
+        and not re.search(r"\b\d{1,2}:\d{2}\b|^\d{1,2}[/.-]\d{1,2}[/.-]\d{4}", text)
+        and not re.match(r"^(?:reg|cashier|manager|pos|ban\s*so|mc)\b", fold(text))
         and not re.search(NON_PRODUCT, fold(text))
         and not re.search(r"https?://|www\.", text.lower())
     )

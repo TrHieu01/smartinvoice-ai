@@ -10,7 +10,7 @@ Ba lượt ảnh thực gần nhất đều `rules-0.4.1+vlm-fallback`, có 33�
 
 ## Kiểm chứng
 
-120 pytest, Ruff và kiểm tra source paths đều qua. Test process thật kiểm chứng hai job dùng chung child, deadline giết child, crash và restart; PDF text chạy hai lần qua IPC. Test adapter kiểm chứng một giá trị sai không làm mất các trường đúng, giữ sản phẩm baseline và từ chối tên không có OCR hỗ trợ.
+121 pytest, Ruff và kiểm tra source paths đều qua. Test process thật kiểm chứng hai job dùng chung child, deadline giết child, crash và restart; PDF text chạy hai lần qua IPC. Test adapter kiểm chứng một giá trị sai không làm mất các trường đúng, giữ sản phẩm baseline và từ chối tên không có OCR hỗ trợ.
 
 Replay OCR riêng tư, không chạy model hoặc ghi lại hóa đơn người dùng:
 

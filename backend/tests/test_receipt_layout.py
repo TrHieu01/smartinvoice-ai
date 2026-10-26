@@ -131,6 +131,12 @@ def test_vat_table_uses_columns_not_vat_percentage_as_item_total():
     assert data.items[0].line_total == "10000.00"
 
 
+def test_timestamp_rows_are_never_restaurant_product_names():
+    ocr = document(row(0.1, ("21/07/2020 05:10 Chieu", 0.1, 0.5), ("20,000", 0.8, 0.95)))
+    data, _, _ = checked_extract(ocr)
+    assert data.items == []
+
+
 def test_weighted_items_below_name_and_ocr_total_label():
     ocr = document(
         row(0.02, ("CỬA HÀNG MẪU", 0.15, 0.8))
